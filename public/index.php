@@ -2,6 +2,7 @@
 
 use Illuminate\Contracts\Http\Kernel;
 use Illuminate\Http\Request;
+use App\Services\OrderAssignmentService;
 
 define('LARAVEL_START', microtime(true));
 
@@ -53,3 +54,4 @@ $response = $kernel->handle(
 )->send();
 
 $kernel->terminate($request, $response);
+

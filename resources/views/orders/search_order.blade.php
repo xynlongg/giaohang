@@ -54,8 +54,10 @@
                         <p><strong>Điểm đi:</strong> {{ $order->sender_address }}</p>
                         <p><strong>Điểm đến:</strong> {{ $order->receiver_address }}</p>
                         <p><strong>Vị trí hiện tại:</strong> 
-                            @if($order->current_location)
+                            @if(is_object($order->current_location) && isset($order->current_location->name))
                                 {{ $order->current_location->name }}
+                            @elseif(is_string($order->current_location))
+                                {{ $order->current_location }}
                             @else
                                 Chưa cập nhật
                             @endif
@@ -106,8 +108,8 @@
                     </div>
                     <div class="card-body">
                         <div id="route-info">
-                            <div><strong>Khoảng cách:</strong> <span id="distance"></span></div>
-                            <div><strong>Thời gian:</strong> <span id="duration"></span></div>
+                            <div><strong>Khoảng cách:</strong> <span id="distance">Đang tính toán...</span></div>
+                            <div><strong>Thời gian:</strong> <span id="duration">Đang tính toán...</span></div>
                         </div>
                     </div>
                 </div>
@@ -119,6 +121,10 @@
                 <a href="#" class="btn btn-primary">Theo dõi đơn hàng</a>
                 <a href="{{ route('dashboard') }}" class="btn btn-secondary">Quay lại trang chủ</a>
             </div>
+        </div>
+    @else
+        <div class="alert alert-danger">
+            Không tìm thấy thông tin đơn hàng.
         </div>
     @endif
 </div>
@@ -135,15 +141,34 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     mapboxgl.accessToken = '{{ env('MAPBOX_ACCESS_TOKEN') }}';
+
+    function parseCoordinates(coords) {
+        if (typeof coords === 'string') {
+            try {
+                return JSON.parse(coords);
+            } catch (e) {
+                console.error('Invalid coordinates format:', coords);
+                return null;
+            }
+        }
+        return coords;
+    }
+
+    var senderCoordinates = parseCoordinates({{ json_encode($order->sender_coordinates) }});
+    var receiverCoordinates = parseCoordinates({{ json_encode($order->receiver_coordinates) }});
+
+    if (!senderCoordinates || !receiverCoordinates) {
+        console.error('Invalid coordinates');
+        document.getElementById('map').innerHTML = '<p class="text-danger">Không thể hiển thị bản đồ do thiếu thông tin tọa độ.</p>';
+        return;
+    }
+
     var map = new mapboxgl.Map({
         container: 'map',
         style: 'mapbox://styles/mapbox/streets-v11',
-        center: {{ json_encode($order->sender_coordinates) }},
+        center: senderCoordinates,
         zoom: 12
     });
-
-    var senderCoordinates = {{ json_encode($order->sender_coordinates) }};
-    var receiverCoordinates = {{ json_encode($order->receiver_coordinates) }};
 
     var directions = new MapboxDirections({
         accessToken: mapboxgl.accessToken,
@@ -171,11 +196,14 @@ document.addEventListener('DOMContentLoaded', function() {
             .setPopup(new mapboxgl.Popup().setHTML("<h3>Điểm đến</h3><p>{{ $order->receiver_name }}</p><p>{{ $order->receiver_address }}</p>"))
             .addTo(map);
 
-        @if($order->current_location)
-            new mapboxgl.Marker({ color: "#00ff00" })
-                .setLngLat({{ json_encode($order->current_location->coordinates) }})
-                .setPopup(new mapboxgl.Popup().setHTML("<h3>Vị trí hiện tại</h3><p>{{ $order->current_location->name }}</p>"))
-                .addTo(map);
+        @if(is_object($order->current_location) && isset($order->current_location->coordinates))
+            var currentLocationCoords = parseCoordinates({{ json_encode($order->current_location->coordinates) }});
+            if (currentLocationCoords) {
+                new mapboxgl.Marker({ color: "#00ff00" })
+                    .setLngLat(currentLocationCoords)
+                    .setPopup(new mapboxgl.Popup().setHTML("<h3>Vị trí hiện tại</h3><p>{{ $order->current_location->name }}</p>"))
+                    .addTo(map);
+            }
         @endif
     });
 

@@ -86,7 +86,7 @@
         if (provinceCode) {
             try {
                 const response = await axios.get(`/get-districts/${provinceCode}`);
-                response.data.forEach(district => {
+                response.data.districts.forEach(district => {
                     const option = document.createElement('option');
                     option.value = district.code;
                     option.textContent = district.name;

@@ -1,13 +1,14 @@
-import './bootstrap';
+import 'bootstrap/dist/css/bootstrap.css';
+import 'bootstrap/dist/js/bootstrap.js';
 
-Echo.private('notifications')
-    .listen('UserSessionChanged', (e) => {
-        const notiElement = document.getElementById('notification')
+// Nếu bạn vẫn muốn sử dụng axios trong project Laravel
+import axios from 'axios';
 
-        notiElement.innerText = e.message
-
-        notiElement.classList.remove('invisible');
-        notiElement.classList.remove('alert-success');
-        notiElement.classList.remove('alert-danger');
-        notiElement.classList.add('alert-'+e.type)
-    })
+axios.defaults.baseURL = '/api';
+axios.interceptors.request.use(config => {
+  const token = localStorage.getItem('token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});

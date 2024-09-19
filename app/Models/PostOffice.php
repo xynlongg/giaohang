@@ -12,7 +12,7 @@ class PostOffice extends Model
     protected $fillable = ['name', 'address', 'district', 'province', 'coordinates'];
 
     protected $casts = [
-        'coordinates' => 'array',
+        'coordinates' => 'string',
     ];
 
     public function currentLocation()
@@ -23,5 +23,14 @@ class PostOffice extends Model
     public function statusLogs()
     {
         return $this->hasMany(OrderStatusLog::class);
+    }
+    public function setCoordinatesAttribute($value)
+    {
+        $this->attributes['coordinates'] = is_string($value) ? $value : json_encode($value);
+    }
+
+    public function getCoordinatesAttribute($value)
+    {
+        return json_decode($value, true);
     }
 }

@@ -27,4 +27,22 @@ class Handler extends ExceptionHandler
             //
         });
     }
+    public function render($request, Throwable $exception)
+    {
+        if ($exception instanceof TokenMismatchException) {
+            // Log the error
+            \Log::error('CSRF token mismatch', [
+                'url' => $request->fullUrl(),
+                'method' => $request->method(),
+                'ip' => $request->ip(),
+                'user_agent' => $request->userAgent()
+            ]);
+
+            // Redirect back with an error message
+            return redirect()->back()->withInput($request->except('password'))
+                ->with('error', 'Phiên làm việc đã hết hạn. Vui lòng thử lại.');
+        }
+
+        return parent::render($request, $exception);
+    }
 }

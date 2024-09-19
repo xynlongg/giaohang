@@ -75,11 +75,13 @@ var marker = new mapboxgl.Marker({ draggable: true })
     .addTo(map);
 
 function updateCoordinates(lngLat) {
-    document.getElementById('coordinates').value = JSON.stringify(lngLat);
+    // Đảm bảo tọa độ được lưu dưới dạng mảng [longitude, latitude]
+    document.getElementById('coordinates').value = JSON.stringify([lngLat.lng, lngLat.lat]);
 }
 
 marker.on('dragend', function() {
-    updateCoordinates(marker.getLngLat());
+    var lngLat = marker.getLngLat();
+    updateCoordinates(lngLat);
 });
 
 var geocoder = new MapboxGeocoder({
@@ -92,8 +94,9 @@ var geocoder = new MapboxGeocoder({
 document.getElementById('geocoder').appendChild(geocoder.onAdd(map));
 
 geocoder.on('result', function(e) {
-    marker.setLngLat(e.result.center);
-    updateCoordinates(e.result.center);
+    var lngLat = e.result.center;
+    marker.setLngLat(lngLat);
+    updateCoordinates({lng: lngLat[0], lat: lngLat[1]});
     
     document.getElementById('address').value = e.result.place_name;
     

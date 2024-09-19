@@ -7,6 +7,9 @@
     <div class="mb-3">
         <a href="{{ route('orders.create') }}" class="btn btn-primary">Tạo Đơn Hàng Mới</a>
     </div>
+    <div class="mb-3">
+        <a href="{{ route('orders.import') }}" class="btn btn-success">Import Đơn Hàng Bằng Excel</a>
+    </div>
 
     <div class="card mb-4">
         <div class="card-body">
@@ -37,51 +40,56 @@
     </div>
 
     <div class="table-responsive">
-        <table class="table table-striped table-hover">
-            <thead>
-                <tr>
-                    <th>ID</th>
-                    <th>Người gửi</th>
-                    <th>Người nhận</th>
-                    <th>Tổng tiền</th>
-                    <th>Trạng thái</th>
-                    <th>Ngày lấy hàng</th>
-                    <th>Ngày giao hàng</th>
-                    <th>Lấy tại bưu cục</th>
-                    <th>Ngày tạo</th>
-                    <th>Hành động</th>
-                </tr>
-            </thead>
-            <tbody id="orders-table-body">
-                @foreach($orders as $order)
-                <tr data-order-id="{{ $order->id }}">
-                    <td>{{ $order->id }}</td>
-                    <td>{{ $order->sender_name }}</td>
-                    <td>{{ $order->receiver_name }}</td>
-                    <td>{{ number_format($order->total_amount) }} VND</td>
-                    <td>
-                        <span class="badge bg-{{ $order->status == 'pending' ? 'warning' : ($order->status == 'shipping' ? 'info' : ($order->status == 'completed' ? 'success' : 'danger')) }}">
-                            {{ ucfirst($order->status) }}
-                        </span>
-                    </td>
-                    <td>{{ $order->pickup_date ? $order->pickup_date->format('d/m/Y H:i') : 'N/A' }}</td>
-                    <td>{{ $order->delivery_date ? $order->delivery_date->format('d/m/Y H:i') : 'N/A' }}</td>
-                    <td>{{ $order->is_pickup_at_post_office ? 'Có' : 'Không' }}</td>
-                    <td>{{ $order->created_at->format('d/m/Y H:i') }}</td>
-                    <td>
-                        <a href="{{ route('orders.show', $order) }}" class="btn btn-sm btn-info">Xem</a>
-                        <a href="{{ route('orders.edit', $order) }}" class="btn btn-sm btn-primary">Sửa</a>
-                        <form action="{{ route('orders.destroy', $order) }}" method="POST" style="display: inline-block;">
-                            @csrf
-                            @method('DELETE')
-                            <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Bạn có chắc chắn muốn xóa đơn hàng này?')">Xóa</button>
-                        </form>
-                    </td>
-                </tr>
-                @endforeach
-            </tbody>
-        </table>
-    </div>
+    <table class="table table-striped table-hover">
+        <thead>
+            <tr>
+                <th>Tracking Number</th>
+                <th>Người gửi</th>
+                <th>Người nhận</th>
+                <th>Địa chỉ nhận hàng</th>
+                <th>Địa chỉ hiện tại</th>
+                <th>Số điện thoại</th>
+                <th>Tiền COD</th>
+                <th>Lấy tại bưu cục</th>
+                <th>Ngày gửi</th>
+                <th>Ngày nhận dự kiến</th>
+                <th>Trạng thái</th>
+                <th>Hành động</th>
+            </tr>
+        </thead>
+        <tbody id="orders-table-body">
+            @foreach($orders as $order)
+            <tr data-order-id="{{ $order->id }}">
+                <td>{{ $order->tracking_number }}</td>
+                <td>{{ $order->sender_name }}</td>
+                <td>{{ $order->receiver_name }}</td>
+                <td>{{ $order->receiver_address }}</td>
+                <td>{{ $order->current_location }}</td>
+                <td>{{ $order->receiver_phone }}</td>
+                <td>{{ number_format($order->total_amount) }} VND</td>
+                <td>{{ $order->is_pickup_at_post_office ? 'Có' : 'Không' }}</td>
+                <td>{{ $order->pickup_date->format('d/m/Y H:i') }}</td>
+                <td>{{ $order->delivery_date ? $order->delivery_date->format('d/m/Y H:i') : 'N/A' }}</td>
+                <td>
+                    <span class="badge bg-{{ $order->status == 'pending' ? 'warning' : ($order->status == 'shipping' ? 'info' : ($order->status == 'completed' ? 'success' : 'danger')) }}">
+                        {{ ucfirst($order->status) }}
+                    </span>
+                </td>
+                <td>
+                    <a href="{{ route('orders.show', $order) }}" class="btn btn-sm btn-info">Xem</a>
+                    <a href="{{ route('orders.edit', $order) }}" class="btn btn-sm btn-primary">Sửa</a>
+                    <a href="/orders/{{ $order->id }}/update" class="btn btn-sm btn-warning">Cập nhật</a>
+                    <form action="{{ route('orders.destroy', $order) }}" method="POST" style="display: inline-block;">
+                        @csrf
+                        @method('DELETE')
+                        <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Bạn có chắc chắn muốn xóa đơn hàng này?')">Xóa</button>
+                    </form>
+                </td>
+            </tr>
+            @endforeach
+        </tbody>
+    </table>
+</div>
 
     <div class="d-flex justify-content-center">
         {{ $orders->links() }}
@@ -100,50 +108,57 @@
     var channel = pusher.subscribe('order-channel');
     
     channel.bind('order-created', function(data) {
-        var order = data.order;
-        var newRow = `
-            <tr data-order-id="${order.id}">
-                <td>${order.id}</td>
-                <td>${order.sender_name}</td>
-                <td>${order.receiver_name}</td>
-                <td>${new Intl.NumberFormat('vi-VN').format(order.total_amount)} VND</td>
-                <td>
-                    <span class="badge bg-${order.status == 'pending' ? 'warning' : (order.status == 'shipping' ? 'info' : (order.status == 'completed' ? 'success' : 'danger'))}">
-                        ${order.status.charAt(0).toUpperCase() + order.status.slice(1)}
-                    </span>
-                </td>
-                <td>${order.pickup_date ? new Date(order.pickup_date).toLocaleString('vi-VN') : 'N/A'}</td>
-                <td>${order.delivery_date ? new Date(order.delivery_date).toLocaleString('vi-VN') : 'N/A'}</td>
-                <td>${order.is_pickup_at_post_office ? 'Có' : 'Không'}</td>
-                <td>${new Date(order.created_at).toLocaleString('vi-VN')}</td>
-                <td>
-                    <a href="/orders/${order.id}" class="btn btn-sm btn-info">Xem</a>
-                    <a href="/orders/${order.id}/edit" class="btn btn-sm btn-primary">Sửa</a>
-                    <form action="/orders/${order.id}" method="POST" style="display: inline-block;">
-                        @csrf
-                        @method('DELETE')
-                        <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Bạn có chắc chắn muốn xóa đơn hàng này?')">Xóa</button>
-                    </form>
-                </td>
-            </tr>
-        `;
-        $('#orders-table-body').prepend(newRow);
+    var order = data.order;
+    var newRow = `
+        <tr data-order-id="${order.id}">
+            <td>${order.tracking_number}</td>
+            <td>${order.sender_name}</td>
+            <td>${order.receiver_name}</td>
+            <td>${order.receiver_address}</td>
+            <td>${order.current_location}</td>
+            <td>${order.receiver_phone}</td>
+            <td>${new Intl.NumberFormat('vi-VN').format(order.total_amount)} VND</td>
+            <td>${order.is_pickup_at_post_office ? 'Có' : 'Không'}</td>
+            <td>${new Date(order.pickup_date).toLocaleString('vi-VN')}</td>
+            <td>${order.delivery_date ? new Date(order.delivery_date).toLocaleString('vi-VN') : 'N/A'}</td>
+            <td>
+                <span class="badge bg-${order.status == 'pending' ? 'warning' : (order.status == 'shipping' ? 'info' : (order.status == 'completed' ? 'success' : 'danger'))}">
+                    ${order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+                </span>
+            </td>
+            <td>
+                <a href="/orders/${order.id}" class="btn btn-sm btn-info">Xem</a>
+                <a href="/orders/${order.id}/edit" class="btn btn-sm btn-primary">Sửa</a>
+                <a href="/orders/${order.id}/update" class="btn btn-sm btn-warning">Cập nhật</a>
+                <form action="/orders/${order.id}" method="POST" style="display: inline-block;">
+                    @csrf
+                    @method('DELETE')
+                    <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Bạn có chắc chắn muốn xóa đơn hàng này?')">Xóa</button>
+                </form>
+            </td>
+        </tr>
+    `;
+    $('#orders-table-body').prepend(newRow);
     });
 
     channel.bind('order-updated', function(data) {
         var order = data.order;
         var row = $(`tr[data-order-id="${order.id}"]`);
+        row.find('td:eq(0)').text(order.tracking_number);
         row.find('td:eq(1)').text(order.sender_name);
         row.find('td:eq(2)').text(order.receiver_name);
-        row.find('td:eq(3)').text(new Intl.NumberFormat('vi-VN').format(order.total_amount) + ' VND');
-        row.find('td:eq(4)').html(`
+        row.find('td:eq(3)').text(order.receiver_address);
+        row.find('td:eq(3)').text(order.current_location);
+        row.find('td:eq(4)').text(order.receiver_phone);
+        row.find('td:eq(5)').text(new Intl.NumberFormat('vi-VN').format(order.total_amount) + ' VND');
+        row.find('td:eq(6)').text(order.is_pickup_at_post_office ? 'Có' : 'Không');
+        row.find('td:eq(7)').text(new Date(order.pickup_date).toLocaleString('vi-VN'));
+        row.find('td:eq(8)').text(order.delivery_date ? new Date(order.delivery_date).toLocaleString('vi-VN') : 'N/A');
+        row.find('td:eq(9)').html(`
             <span class="badge bg-${order.status == 'pending' ? 'warning' : (order.status == 'shipping' ? 'info' : (order.status == 'completed' ? 'success' : 'danger'))}">
                 ${order.status.charAt(0).toUpperCase() + order.status.slice(1)}
             </span>
         `);
-        row.find('td:eq(5)').text(order.pickup_date ? new Date(order.pickup_date).toLocaleString('vi-VN') : 'N/A');
-        row.find('td:eq(6)').text(order.delivery_date ? new Date(order.delivery_date).toLocaleString('vi-VN') : 'N/A');
-        row.find('td:eq(7)').text(order.is_pickup_at_post_office ? 'Có' : 'Không');
     });
 
     channel.bind('order-deleted', function(data) {

@@ -18,11 +18,10 @@ class InterviewInvitation extends Mailable
     {
         $this->shipper = $shipper;
     }
-
     public function build()
     {
         return $this->subject('Mời phỏng vấn - LongXyn Delivery')
-                     ->from('longxyn@gmail.com', 'LongXyn Delivery') // Thay đổi địa chỉ email và tên người gửi
+                     ->from('longxyn@gmail.com', 'LongXyn Delivery') 
                     ->view('emails.interview-invitation');
     }
 }

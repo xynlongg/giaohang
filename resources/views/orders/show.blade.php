@@ -43,55 +43,58 @@
                         <p><strong>Tổng giá trị hàng:</strong> {{ number_format($order->total_value) }} VND</p>
                         <p><strong>Phí vận chuyển:</strong> {{ number_format($order->shipping_fee) }} VND</p>
                         <p><strong>Tổng cộng:</strong> {{ number_format($order->total_amount) }} VND</p>
-                        <p><strong>Trạng thái:</strong> <span class="badge bg-{{ $order->status_class }}">{{ ucfirst($order->status) }}</span></p>
+                        <p><strong>Trạng Thái:</strong> {{ $order->status }}</p>
                         <p><strong>Ngày lấy hàng:</strong> {{ $order->pickup_date ? $order->pickup_date->format('d/m/Y H:i') : 'N/A' }}</p>
                         <p><strong>Ngày giao hàng dự kiến:</strong> {{ $order->delivery_date ? $order->delivery_date->format('d/m/Y H:i') : 'N/A' }}</p>
-                        <p><strong>Lấy hàng tại bưu cục:</strong> {{ $order->is_pickup_at_post_office ? 'Có' : 'Không' }}</p>
-                        @if($order->is_pickup_at_post_office && $order->pickupLocation)
+                        <p><strong>Lấy hàng tại bưu cục:</strong> {{ $order->pickup_type == 'post_office' ? 'Có' : 'Không' }}</p>
+                        @if($order->pickup_type == 'post_office' && $order->pickupLocation)
                             <p><strong>Bưu cục lấy hàng:</strong> {{ $order->pickupLocation->name }} - {{ $order->pickupLocation->address }}</p>
                         @endif
                     </div>
                 </div>
+
                 <div class="card mb-3">
-                <div class="card-header">
-                    <h2>Lịch sử vị trí</h2>
-                </div>
-                <div class="card-body">
-                    <table class="table">
-                        <thead>
-                            <tr>
-                                <th>Thời gian</th>
-                                <th>Loại vị trí</th>
-                                <th>Địa chỉ</th>
-                                <th>Trạng thái</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach($order->locationHistory()->orderBy('timestamp', 'desc')->get() as $history)
+                    <div class="card-header">
+                        <h2>Lịch sử vị trí</h2>
+                    </div>
+                    <div class="card-body">
+                        <table class="table">
+                            <thead>
                                 <tr>
-                                    <td>{{ $history->timestamp->format('d/m/Y H:i:s') }}</td>
-                                    <td>
-                                        @if($history->location_type == 'sender')
-                                            Người gửi
-                                        @elseif($history->location_type == 'post_office')
-                                            Bưu cục
-                                        @elseif($history->location_type == 'receiver')
-                                            Người nhận
-                                        @endif
-                                    </td>
-                                    <td>
-                                        @if($history->location_type == 'post_office')
-                                            {{ $history->postOffice->name }} - 
-                                        @endif
-                                        {{ $history->address }}
-                                    </td>
-                                    <td>{{ ucfirst($history->status) }}</td>
+                                    <th>Thời gian</th>
+                                    <th>Loại vị trí</th>
+                                    <th>Địa chỉ</th>
+                                    <th>Trạng thái</th>
                                 </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody>
+                @foreach($order->locationHistory()->orderBy('timestamp', 'desc')->get() as $history)
+                    <tr>
+                        <td>{{ $history->timestamp->format('d/m/Y H:i:s') }}</td>
+                        <td>
+                            @if($history->location_type == 'sender')
+                                Người gửi
+                            @elseif($history->location_type == 'post_office')
+                                Bưu cục
+                            @elseif($history->location_type == 'receiver')
+                                Người nhận
+                            @else
+                                {{ $history->location_type }}
+                            @endif
+                        </td>
+                        <td>
+                            @if($history->location_type == 'post_office' && $history->postOffice)
+                                {{ $history->postOffice->name }} - 
+                            @endif
+                            {{ $history->address }}
+                        </td>
+                        <td>{{ ucfirst($history->status) }}</td>
+                    </tr>
+                @endforeach
+            </tbody>
+                        </table>
+                    </div>
                 </div>
-            </div>
             
                 <!-- Thông tin giao nhận -->
                 <div class="card mb-3">
@@ -100,8 +103,8 @@
                     </div>
                     <div class="card-body">
                         <div class="form-group">
-                            <label for="start">Điểm đi:</label>
-                            <input type="text" id="start" class="form-control" value="{{ $order->sender_address }}" readonly>
+                            <label for="start">Vị trí hiện tại:</label>
+                            <input type="text" id="start" class="form-control" value="{{ $order->current_location }}" readonly>
                         </div>
                         <div class="form-group">
                             <label for="end">Điểm đến:</label>
@@ -161,7 +164,7 @@
                         <h2>Vị trí hiện tại</h2>
                     </div>
                     <div class="card-body">
-                        <p>Vị trí hiện tại: <span id="current-location">{{ $order->current_status ?? 'Chưa có thông tin' }}</span></p>
+                        <p>Vị trí hiện tại: <span id="current-location">{{ $order->current_location ?? 'Chưa có thông tin' }}</span></p>
                     </div>
                 </div>
 
@@ -187,26 +190,35 @@
 <link rel='stylesheet' href='https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-directions/v4.1.0/mapbox-gl-directions.css' type='text/css' />
 @endpush
 
+
 @push('scripts')
 <script src='https://api.mapbox.com/mapbox-gl-js/v2.9.1/mapbox-gl.js'></script>
-<script src="https://js.pusher.com/7.0/pusher.min.js"></script>
 <script src='https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-directions/v4.1.0/mapbox-gl-directions.js'></script>
+<script src="https://js.pusher.com/7.0/pusher.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Khởi tạo Mapbox với Access Token
+    console.log('DOM loaded');
+
+    var orderId = {{ $order->id }};
+    var map, directions, currentMarker, receiverMarker;
+    var currentCoordinates = {{ json_encode($order->current_coordinates) }};
+    var receiverCoordinates = {{ json_encode($order->receiver_coordinates) }};
+
+    console.log('Initial coordinates:', { current: currentCoordinates, receiver: receiverCoordinates });
+
+    // Khởi tạo Mapbox
     mapboxgl.accessToken = '{{ env('MAPBOX_ACCESS_TOKEN') }}';
-    var map = new mapboxgl.Map({
+    map = new mapboxgl.Map({
         container: 'map',
         style: 'mapbox://styles/mapbox/streets-v11',
-        center: {{ json_encode($order->sender_coordinates) }},
+        center: currentCoordinates,
         zoom: 12
     });
 
-    var senderCoordinates = {{ json_encode($order->sender_coordinates) }};
-    var receiverCoordinates = {{ json_encode($order->receiver_coordinates) }};
+    console.log('Mapbox initialized');
 
-    // Khởi tạo Mapbox Directions để chỉ đường
-    var directions = new MapboxDirections({
+    // Khởi tạo Mapbox Directions
+    directions = new MapboxDirections({
         accessToken: mapboxgl.accessToken,
         unit: 'metric',
         profile: 'mapbox/driving',
@@ -219,25 +231,92 @@ document.addEventListener('DOMContentLoaded', function() {
     map.addControl(directions, 'top-left');
 
     map.on('load', function() {
-        directions.setOrigin(senderCoordinates);
-        directions.setDestination(receiverCoordinates);
+        console.log('Map loaded');
+        updateRoute();
 
-        // Thêm marker cho người gửi và người nhận
-        new mapboxgl.Marker({ color: "#3887be" })
-            .setLngLat(senderCoordinates)
-            .setPopup(new mapboxgl.Popup().setHTML("<h3>Người gửi</h3><p>{{ $order->sender_name }}</p><p>{{ $order->sender_address }}</p>"))
+        // Thêm marker cho vị trí hiện tại
+        currentMarker = new mapboxgl.Marker({ color: "#00FF00" })
+            .setLngLat(currentCoordinates)
+            .setPopup(new mapboxgl.Popup().setHTML("<h3>Vị trí hiện tại</h3><p>" + document.getElementById('current-location').innerText + "</p>"))
             .addTo(map);
 
-        new mapboxgl.Marker({ color: "#f30" })
+        // Thêm marker cho người nhận
+        receiverMarker = new mapboxgl.Marker({ color: "#f30" })
             .setLngLat(receiverCoordinates)
             .setPopup(new mapboxgl.Popup().setHTML("<h3>Người nhận</h3><p>{{ $order->receiver_name }}</p><p>{{ $order->receiver_address }}</p>"))
             .addTo(map);
+
+        fitMapToMarkers();
     });
+
+    // Cập nhật route
+    function updateRoute() {
+        console.log('Updating route');
+        directions.setOrigin(currentCoordinates);
+        directions.setDestination(receiverCoordinates);
+    }
+
+    // Fit map để hiển thị cả hai marker
+    function fitMapToMarkers() {
+        console.log('Fitting map to markers');
+        var bounds = new mapboxgl.LngLatBounds();
+        bounds.extend(currentCoordinates);
+        bounds.extend(receiverCoordinates);
+        map.fitBounds(bounds, { padding: 50 });
+    }
 
     // Hiển thị thông tin đường đi
     directions.on('route', function(e) {
-        document.getElementById('distance').textContent = e.route[0].distance.toFixed(2) + ' meters';
-        document.getElementById('duration').textContent = (e.route[0].duration / 60).toFixed(2) + ' minutes';
+        console.log('Route calculated', e.route[0]);
+        document.getElementById('distance').textContent = (e.route[0].distance / 1000).toFixed(2) + ' km';
+        document.getElementById('duration').textContent = (e.route[0].duration / 60).toFixed(0) + ' phút';
+    });
+
+    // Khởi tạo Pusher
+    var pusher = new Pusher('{{ env('PUSHER_APP_KEY') }}', {
+        cluster: '{{ env('PUSHER_APP_CLUSTER') }}',
+        encrypted: true
+    });
+
+    console.log('Pusher initialized');
+
+    // Đăng ký kênh cho đơn hàng cụ thể
+    var channel = pusher.subscribe('order.' + orderId);
+
+    console.log('Subscribed to channel: order.' + orderId);
+
+    // Lắng nghe sự kiện cập nhật đơn hàng
+    channel.bind('order.updated', function(data) {
+        console.log('Received order update', data);
+
+        // Cập nhật thông tin đơn hàng
+        document.getElementById('current-location').textContent = data.current_location;
+        document.querySelector('.badge').textContent = data.status;
+        document.querySelector('.badge').className = 'badge bg-' + data.status_class;
+
+        // Cập nhật vị trí hiện tại trên bản đồ
+        currentCoordinates = data.current_coordinates;
+        currentMarker.setLngLat(currentCoordinates);
+        currentMarker.getPopup().setHTML("<h3>Vị trí hiện tại</h3><p>" + data.current_location + "</p>");
+
+        // Cập nhật route
+        updateRoute();
+
+        // Fit map lại để hiển thị cả hai marker
+        fitMapToMarkers();
+
+        // Cập nhật lịch sử vị trí
+        var historyTable = document.querySelector('.table tbody');
+        var newRow = document.createElement('tr');
+        newRow.innerHTML = `
+            <td>${data.timestamp}</td>
+            <td>${data.location_type}</td>
+            <td>${data.address}</td>
+            <td>${data.status}</td>
+        `;
+        historyTable.insertBefore(newRow, historyTable.firstChild);
+
+        console.log('UI updated');
     });
 });
 </script>

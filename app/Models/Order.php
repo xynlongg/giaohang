@@ -17,6 +17,9 @@ class Order extends Model
         'current_location_type',
         'current_coordinates',
         'current_location',
+        'warranty_fee',
+        'category_id',
+        'warranty_package_id',
     ];
 
     protected $casts = [
@@ -64,5 +67,14 @@ class Order extends Model
     public function locationHistory()
     {
         return $this->hasMany(OrderLocationHistory::class);
+    }
+    public function category()
+    {
+        return $this->belongsTo(ProductCategory::class);
+    }
+
+    public function warrantyPackage()
+    {
+        return $this->belongsTo(WarrantyPackage::class);
     }
 }

@@ -28,6 +28,6 @@ class OrderLocationHistory extends Model
 
     public function postOffice()
     {
-        return $this->belongsTo(PostOffice::class, 'location_id');
+        return $this->belongsTo(PostOffice::class, 'post_office_id');
     }
 }

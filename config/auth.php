@@ -40,6 +40,16 @@ return [
             'driver' => 'session',
             'provider' => 'users',
         ],
+        'api' => [
+            'driver' => 'token',
+            'provider' => 'users',
+            'hash' => false,
+        ],
+    
+        'shipper' => [
+            'driver' => 'sanctum',
+            'provider' => 'shippers',
+        ],
     ],
 
     /*
@@ -69,6 +79,10 @@ return [
         //     'driver' => 'database',
         //     'table' => 'users',
         // ],
+        'shippers' => [
+            'driver' => 'eloquent',
+            'model' => App\Models\Shipper::class,
+        ],
     ],
 
     /*
@@ -96,6 +110,13 @@ return [
             'table' => 'password_reset_tokens',
             'expire' => 60,
             'throttle' => 60,
+        ],
+        
+        'shippers' => [
+        'provider' => 'shippers',
+        'table' => 'password_resets',
+        'expire' => 60,
+        'throttle' => 60,
         ],
     ],
 

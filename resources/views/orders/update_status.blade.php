@@ -14,8 +14,8 @@
                     <p><strong>Mã đơn hàng:</strong> {{ $order->tracking_number }}</p>
                     <p><strong>Người gửi:</strong> {{ $order->sender_name }}</p>
                     <p><strong>Người nhận:</strong> {{ $order->receiver_name }}</p>
-                    <p><strong>Trạng thái hiện tại:</strong> <span class="badge bg-{{ $order->status_class }}">{{ ucfirst($order->status) }}</span></p>
-                    <p><strong>Vị trí hiện tại:</strong> {{ $order->current_location ?? 'Chưa có thông tin' }}</p>
+                    <p><strong>Trạng thái hiện tại:</strong> <span id="current-status">{{ $order->status }}</span></p>
+                    <p><strong>Vị trí hiện tại:</strong> <span id="current-location">{{ $order->current_location ?? 'Chưa có thông tin' }}</span></p>
                 </div>
             </div>
 
@@ -24,8 +24,8 @@
                     <h2>Cập nhật vị trí và trạng thái</h2>
                 </div>
                 <div class="card-body">
-                <form id="update-order-form" action="{{ route('orders.update', $order->id) }}" method="POST">
-                @csrf
+                    <form id="update-order-form" action="{{ route('orders.update', $order->id) }}" method="POST">
+                        @csrf
                         <div class="form-group mb-3">
                             <label for="post_office_id">Chọn bưu cục:</label>
                             <select name="post_office_id" id="post_office_id" class="form-control">
@@ -76,55 +76,86 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     mapboxgl.accessToken = '{{ env('MAPBOX_ACCESS_TOKEN') }}';
+
+    function parseCoordinates(coords) {
+        if (typeof coords === 'string') {
+            try {
+                return JSON.parse(coords);
+            } catch (e) {
+                console.error('Invalid coordinates format:', coords);
+                return null;
+            }
+        } else if (Array.isArray(coords) && coords.length === 2) {
+            return coords;
+        }
+        return null;
+    }
+
+    var initialCoordinates = parseCoordinates({{ json_encode($order->current_coordinates ?? $order->sender_coordinates) }});
+
+    if (!initialCoordinates) {
+        console.error('Invalid initial coordinates');
+        document.getElementById('map').innerHTML = '<p class="text-danger">Không thể hiển thị bản đồ do tọa độ không hợp lệ.</p>';
+        return;
+    }
+
     var map = new mapboxgl.Map({
         container: 'map',
         style: 'mapbox://styles/mapbox/streets-v11',
-        center: {{ json_encode($order->current_coordinates ?? $order->sender_coordinates) }},
+        center: initialCoordinates,
         zoom: 12
     });
 
     var currentMarker;
 
     function updateMap(coordinates) {
+        var parsedCoords = parseCoordinates(coordinates);
+        if (!parsedCoords) {
+            console.error('Invalid coordinates for updating map:', coordinates);
+            return;
+        }
+
         if (currentMarker) {
             currentMarker.remove();
         }
         currentMarker = new mapboxgl.Marker({ color: "#00FF00" })
-            .setLngLat(coordinates)
+            .setLngLat(parsedCoords)
             .addTo(map);
-        map.flyTo({ center: coordinates, zoom: 14 });
+        map.flyTo({ center: parsedCoords, zoom: 14 });
     }
 
     // Khởi tạo marker ban đầu
-    updateMap({{ json_encode($order->current_coordinates ?? $order->sender_coordinates) }});
+    updateMap(initialCoordinates);
 
-    document.getElementById('update-order-form').addEventListener('submit', function(e) {
+    const form = document.getElementById('update-order-form');
+    form.addEventListener('submit', function(e) {
         e.preventDefault();
-        var formData = new FormData(this);
+        const formData = new FormData(this);
 
-        fetch('{{ route('orders.update', $order->id) }}', {
-            method: 'POST', // Đảm bảo sử dụng phương thức POST
+        fetch(this.action, {
+            method: 'POST',
             body: formData,
             headers: {
                 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
-                'Accept': 'application/json' // Yêu cầu phản hồi dạng JSON
+                'Accept': 'application/json'
             }
         })
         .then(response => {
             if (!response.ok) {
-                throw new Error('Network response was not ok');
+                return response.text().then(text => {
+                    throw new Error(text || 'Network response was not ok');
+                });
             }
             return response.json();
         })
         .then(data => {
             if (data.success) {
                 alert('Cập nhật thành công!');
-                document.querySelector('.card-body p:nth-child(4)').innerHTML = '<strong>Trạng thái hiện tại:</strong> <span class="badge bg-' + data.status_class + '">' + data.status + '</span>';
-                document.querySelector('.card-body p:nth-child(5)').innerHTML = '<strong>Vị trí hiện tại:</strong> ' + data.location;
-
-                var selectedOption = document.querySelector('#post_office_id option:checked');
-                var coordinates = JSON.parse(selectedOption.dataset.coordinates);
-                updateMap(coordinates);
+                document.getElementById('current-status').textContent = data.status;
+                document.getElementById('current-location').textContent = data.location;
+                if (data.coordinates) {
+                    updateMap(data.coordinates);
+                }
             } else {
                 alert('Có lỗi xảy ra khi cập nhật: ' + (data.message || 'Unknown error'));
             }
@@ -133,6 +164,16 @@ document.addEventListener('DOMContentLoaded', function() {
             console.error('Error:', error);
             alert('Có lỗi xảy ra khi cập nhật: ' + error.message);
         });
+    });
+
+    // Cập nhật bản đồ khi chọn bưu cục mới
+    document.getElementById('post_office_id').addEventListener('change', function() {
+        var selectedOption = this.options[this.selectedIndex];
+        var coordinates = parseCoordinates(selectedOption.dataset.coordinates);
+        if (coordinates) {
+            updateMap(coordinates);
+        }
+    });
 });
 </script>
 @endpush

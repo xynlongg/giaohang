@@ -16,4 +16,5 @@ class Product extends Model
             ->withPivot('quantity', 'cod_amount', 'weight')
             ->withTimestamps();
     }
+    
 }
