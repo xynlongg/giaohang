@@ -21,7 +21,11 @@ class Kernel extends HttpKernel
         \Illuminate\Foundation\Http\Middleware\ValidatePostSize::class,
         \App\Http\Middleware\TrimStrings::class,
         \Illuminate\Foundation\Http\Middleware\ConvertEmptyStringsToNull::class,
-        
+        \App\Http\Middleware\LogRequests::class,
+        \App\Http\Middleware\DetailedLogRequests::class,
+        \Illuminate\Session\Middleware\StartSession::class,
+        \App\Http\Middleware\ErrorHandlingMiddleware::class,
+
     ];
 
     /**
@@ -38,13 +42,17 @@ class Kernel extends HttpKernel
             \App\Http\Middleware\LogCsrfToken::class, 
             \App\Http\Middleware\VerifyCsrfToken::class,
             \Illuminate\Routing\Middleware\SubstituteBindings::class,
+            \App\Http\Middleware\HandleCsrfForVue::class,
+
+            
         ],
 
-        'api' => [
-            \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
+      'api' => [
+            \App\Http\Middleware\JwtLoggingMiddleware::class,
             'throttle:api',
             \Illuminate\Routing\Middleware\SubstituteBindings::class,
         ],
+
     ];
 
     /**
@@ -67,5 +75,11 @@ class Kernel extends HttpKernel
         'throttle' => \Illuminate\Routing\Middleware\ThrottleRequests::class,
         'verified' => \Illuminate\Auth\Middleware\EnsureEmailIsVerified::class,
         'admin' => \App\Http\Middleware\CheckAdminRole::class, // Moved here from $routeMiddleware
+        'role' => \App\Http\Middleware\CheckRole::class,
+                \App\Http\Middleware\HandleCsrfForVue::class,
+        'auth.sanctum' => \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
+        'ability.shipper' => \App\Http\Middleware\CheckShipperAbility::class,
+        'auth.shipper' => \App\Http\Middleware\ShipperTokenMiddleware::class,
+
     ];
 }

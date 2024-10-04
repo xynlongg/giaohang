@@ -8,21 +8,21 @@
             @csrf
             <div class="row">
                 <div class="col-md-6">
-                    <div class="form-group">
-                        <label>Phương thức lấy hàng:</label>
-                        <div class="form-check">
-                            <input class="form-check-input" type="radio" id="pickup_type_post_office" name="is_pickup_at_post_office" value="1">
-                            <label class="form-check-label" for="pickup_type_post_office">
-                                Gửi tại bưu cục
-                            </label>
-                        </div>
-                        <div class="form-check">
-                            <input class="form-check-input" type="radio" id="pickup_type_home" name="is_pickup_at_post_office" value="0" checked>
-                            <label class="form-check-label" for="pickup_type_home">
-                                Lấy hàng tận nơi
-                            </label>
-                        </div>
+                <div class="form-group">
+                    <label>Phương thức lấy hàng:</label>
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" id="pickup_type_post_office" name="is_pickup_at_post_office" value="1">
+                        <label class="form-check-label" for="pickup_type_post_office">
+                            Gửi tại bưu cục
+                        </label>
                     </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" id="pickup_type_home" name="is_pickup_at_post_office" value="0" checked>
+                        <label class="form-check-label" for="pickup_type_home">
+                            Lấy hàng tận nơi
+                        </label>
+                    </div>
+                </div>
                     <div class="form-group">
                     <label for="category_id">Danh mục sản phẩm:</label>
                     <select class="form-control" id="category_id" name="category_id" required>
@@ -40,14 +40,14 @@
                     </select>
                 </div>
                     <div id="post_office_section" style="display: none;">
-                        <div class="form-group">
-                            <label for="pickup_location_id">Chọn bưu cục gửi hàng:</label>
-                            <select class="form-control" id="pickup_location_id" name="pickup_location_id">
-                                @foreach($postOffices as $postOffice)
-                                    <option value="{{ $postOffice->id }}">{{ $postOffice->name }} - {{ $postOffice->address }}</option>
-                                @endforeach
-                            </select>
-                        </div>
+                    <div class="form-group">
+                        <label for="pickup_location_id">Chọn bưu cục gửi hàng:</label>
+                        <select class="form-control" id="pickup_location_id" name="pickup_location_id">
+                            @foreach($postOffices as $postOffice)
+                                <option value="{{ $postOffice->id }}">{{ $postOffice->name }} - {{ $postOffice->address }}</option>
+                            @endforeach
+                        </select>
+                    </div>
                     </div>
 
                     <div id="home_pickup_section">
@@ -461,33 +461,38 @@
             body: formData,
             headers: {
                 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                'X-Requested-With': 'XMLHttpRequest',
                 'Accept': 'application/json'
             }
         })
         .then(response => {
-            if (!response.ok) {
-                return response.json().then(err => { throw err; });
-            }
-            return response.json();
-        })
-        .then(data => {
-            if (data.success) {
-                document.getElementById('trackingNumber').textContent = data.tracking_number;
-                document.getElementById('qrCodeContainer').innerHTML = data.qr_code;
-                document.getElementById('orderCreatedInfo').style.display = 'block';
-                document.getElementById('orderForm').reset();
-                senderMarker.setLngLat([105.85, 21.02]);
-                receiverMarker.setLngLat([105.86, 21.03]);
-                map.flyTo({center: [105.85, 21.02], zoom: 12});
-                hideError();
-                window.location.href = '/orders/';
+            const contentType = response.headers.get('content-type');
+            if (contentType && contentType.includes('application/json')) {
+                return response.json().then(data => ({status: response.status, body: data}));
             } else {
-                showError(data.message || 'Đã xảy ra lỗi khi tạo đơn hàng.');
+                throw new Error('Received non-JSON response from server');
+            }
+        })
+        .then(({status, body}) => {
+            if (status === 200 && body.success) {
+                if (body.redirect) {
+                    window.location.href = body.redirect;
+                } else {
+                    document.getElementById('trackingNumber').textContent = body.order.tracking_number;
+                    document.getElementById('orderCreatedInfo').style.display = 'block';
+                    document.getElementById('orderForm').reset();
+                    senderMarker.setLngLat([105.85, 21.02]);
+                    receiverMarker.setLngLat([105.86, 21.03]);
+                    map.flyTo({center: [105.85, 21.02], zoom: 12});
+                    hideError();
+                }
+            } else {
+                showError(body.message || 'Đã xảy ra lỗi khi tạo đơn hàng.');
             }
         })
         .catch(error => {
             console.error('Error:', error);
-            showError(error.message || 'Đã xảy ra lỗi khi tạo đơn hàng.');
+            showError('Đã xảy ra lỗi khi xử lý yêu cầu. Vui lòng thử lại sau.');
         });
     });
 

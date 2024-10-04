@@ -127,4 +127,6 @@ class LoginController extends Controller
         Log::info('User authenticated in LoginController. User ID: ' . $user->id);
         Log::info('Session ID after login: ' . $request->session()->getId());
     }
+    
+  
 }

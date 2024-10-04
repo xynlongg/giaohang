@@ -31,3 +31,6 @@ Broadcast::channel('chat', function($user) {
 Broadcast::channel('chat.greet.{receiver_id}', function ($user, $receiver_id) {
     return (int) $user->id === (int) $receiver_id;
 });
+Broadcast::channel('post-office.{id}', function ($user, $id) {
+    return $user->postOffices->contains($id);
+});

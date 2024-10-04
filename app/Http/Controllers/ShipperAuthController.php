@@ -6,6 +6,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 class ShipperAuthController extends Controller
 {
@@ -18,32 +20,28 @@ class ShipperAuthController extends Controller
 
         $shipper = Shipper::where('email', $request->email)->first();
 
-        if (! $shipper || ! Hash::check($request->password, $shipper->password)) {
-            throw ValidationException::withMessages([
-                'email' => ['The provided credentials are incorrect.'],
-            ]);
+        if (!$shipper || !Hash::check($request->password, $shipper->password)) {
+            return response()->json(['message' => 'Invalid credentials'], 401);
         }
 
-        $token = $shipper->createToken('auth-token')->plainTextToken;
+        $token = Str::random(60);
+        $shipper->api_token = $token;
+        $shipper->save();
 
         return response()->json([
-            'shipper' => $shipper,
-            'token' => $token
+            'token' => $token,
+            'shipper' => $shipper
         ]);
     }
 
-    public function logout(Request $request)
+    public function profile(Request $request)
     {
-        $request->user()->currentAccessToken()->delete();
-
-        return response()->json(['message' => 'Logged out successfully']);
+        return response()->json($request->user('shipper'));
     }
 
-    public function me(Request $request)
-    {
-        return response()->json($request->user());
-    }
+       
 
+  
     public function forgotPassword(Request $request)
     {
         $request->validate(['email' => 'required|email']);
@@ -81,5 +79,54 @@ class ShipperAuthController extends Controller
         }
 
         return response()->json(['message' => 'Unable to reset password'], 400);
+    }
+    public function changePassword(Request $request)
+    {
+        $request->validate([
+            'current_password' => 'required',
+            'new_password' => 'required|min:8|different:current_password',
+            'confirm_password' => 'required|same:new_password',
+        ]);
+
+        $shipper = Auth::guard('shipper')->user();
+
+        if (!$shipper) {
+            return response()->json(['message' => 'Unauthorized'], 401);
+        }
+
+        if (!Hash::check($request->current_password, $shipper->password)) {
+            throw ValidationException::withMessages([
+                'current_password' => ['The provided password does not match your current password.'],
+            ]);
+        }
+
+        $shipper->password = Hash::make($request->new_password);
+        $shipper->save();
+
+        return response()->json(['message' => 'Password changed successfully']);
+    }
+
+    public function logout(Request $request)
+    {
+        try {
+            $request->user()->currentAccessToken()->delete();
+            Log::info('Logout successful', ['shipper_id' => $request->user()->id]);
+            return response()->json(['message' => 'Logged out successfully'], 200);
+        } catch (\Exception $e) {
+            Log::error('Logout error', [
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return response()->json(['message' => 'An error occurred during logout'], 500);
+        }
+    }
+
+    public function getCurrentShipper()
+    {
+        $shipper = Auth::guard('shipper')->user();
+        if (!$shipper) {
+            return response()->json(['message' => 'Unauthorized'], 401);
+        }
+        return response()->json($shipper->load('postOfficeShipper.postOffice'));
     }
 }

@@ -41,15 +41,16 @@ return [
             'provider' => 'users',
         ],
         'api' => [
-            'driver' => 'token',
+            'driver' => 'jwt',
             'provider' => 'users',
             'hash' => false,
         ],
-    
         'shipper' => [
-            'driver' => 'sanctum',
+            'driver' => 'token',
             'provider' => 'shippers',
+            'hash' => false,
         ],
+       
     ],
 
     /*
@@ -113,10 +114,10 @@ return [
         ],
         
         'shippers' => [
-        'provider' => 'shippers',
-        'table' => 'password_resets',
-        'expire' => 60,
-        'throttle' => 60,
+            'provider' => 'shippers',
+            'table' => 'password_resets',
+            'expire' => 60,
+            'throttle' => 60,
         ],
     ],
 

@@ -4,9 +4,14 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\RoleController;
 use App\Http\Controllers\Api\UserController;
+use App\Http\Controllers\Api\ShipperOrderController;
 use App\Http\Controllers\ShipperProfileController;
 use App\Http\Controllers\ShipperAuthController;
-use App\Http\Controllers\ShipperScoreController;
+use App\Http\Controllers\ShipperController;
+use App\Http\Controllers\PostOfficeOrderManagementController;
+use Illuminate\Support\Facades\Log;
+
+
 
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
@@ -37,20 +42,29 @@ Route::delete('/user/{userId}/remove-role', [RoleController::class, 'removeRole'
 // Lấy danh sách vai trò hiện tại của người dùng
 Route::get('/user/{userId}/roles', [RoleController::class, 'getUserRoles']);
 
+
 // Shipper
 Route::apiResource('admin/shippers', ShipperProfileController::class);
-Route::post('/shipper/login', [ShipperAuthController::class, 'login']);
+Route::post('/shipper/login', [ShipperAuthController::class, 'login'])->middleware('throttle:login');
 Route::post('/shipper/forgot-password', [ShipperAuthController::class, 'forgotPassword']);
 Route::post('/shipper/reset-password', [ShipperAuthController::class, 'resetPassword'])->name('shipper.password.reset');
 
-Route::middleware('auth:sanctum')->group(function () {
+Route::middleware('auth.shipper')->group(function () {
+    Route::get('/check-image/{imageName}', [ShipperOrderController::class, 'checkImageExists']);
+    Route::get('/shipper/currentshipper', [ShipperAuthController::class, 'getCurrentShipper']);
+    Route::get('/shipper/me', [ShipperAuthController::class, 'profile']);
     Route::post('/shipper/logout', [ShipperAuthController::class, 'logout']);
-    Route::get('/shipper/me', [ShipperAuthController::class, 'me']);
-    
-    Route::put('/shipper/{shipper}/attendance', [ShipperScoreController::class, 'updateAttendance']);
-    Route::put('/shipper/{shipper}/vote', [ShipperScoreController::class, 'updateVote']);
-    Route::put('/shipper/{shipper}/operating-area', [ShipperScoreController::class, 'updateOperatingArea']);
-    Route::post('/shipper/{shipper}/avatar', [ShipperAvatarController::class, 'update']);
-    Route::get('/shipper/profile', [ShipperProfileController::class, 'show']);
-    Route::post('/shipper/change-password', [ShipperProfileController::class, 'changePassword']);
+    Route::post('/shipper/avatar', [ShipperController::class, 'uploadAvatar']);
+    Route::put('/shipper/profile', [ShipperController::class, 'updateProfile']);
+    Route::post('/shipper/change-password', [ShipperAuthController::class, 'changePassword']);
+
+    Route::get('/orders/{orderId}/available-shippers', [PostOfficeOrderManagementController::class, 'getAvailableShippers']);
+    Route::get('/shipper/orders', [ShipperOrderController::class, 'getAssignedOrders']);
+    Route::post('/shipper/orders/{order}/status', [ShipperOrderController::class, 'updateOrderStatus']);
+    Route::get('/shipper/orders/{order}/post-office', [ShipperOrderController::class, 'getPostOffice']);
+    Route::get('/shipper/orders/{id}', [ShipperOrderController::class, 'getOrderDetail']);
 });
+
+
+
+

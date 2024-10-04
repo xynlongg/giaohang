@@ -24,7 +24,7 @@
     </li><!-- End Chat Nav -->
 
     <!-- Game -->
-    <li class="nav-item">
+    <!-- <li class="nav-item">
       <a class="nav-link collapsed" data-bs-target="#game-nav" data-bs-toggle="collapse" href="#">
         <i class="bi bi-journal-text"></i><span>Game</span><i class="bi bi-chevron-down ms-auto"></i>
       </a>
@@ -35,7 +35,8 @@
           </a>
         </li>
       </ul>
-    </li><!-- End Game Nav -->
+    </li> -->
+    <!-- End Game Nav -->
 
     <!-- Profile -->
     <li class="nav-item">
@@ -88,25 +89,10 @@
         </li><!-- End Roles Nav -->
       @endif
     @endauth
-
-    <!-- Trackings -->
-    <li class="nav-item">
-      <a class="nav-link collapsed" href="{{ url('trackings') }}">
-        <i class="bi bi-person"></i><span>Trackings</span>
-      </a>
-    </li><!-- End Trackings Nav -->
-
-    <!-- Warehouse -->
-    <li class="nav-item">
-      <a class="nav-link collapsed" href="{{ url('warehouses') }}">
-        <i class="bi bi-envelope"></i><span>Warehouse</span>
-      </a>
-    </li><!-- End Warehouse Nav -->
-
     <!-- Orders -->
     <li class="nav-item">
       <a class="nav-link collapsed" data-bs-target="#orders-nav" data-bs-toggle="collapse" href="#">
-        <i class="bi bi-gem"></i><span>Orders</span><i class="bi bi-chevron-down ms-auto"></i>
+        <i class="bi bi-gem"></i><span>Orders Admin</span><i class="bi bi-chevron-down ms-auto"></i>
       </a>
       <ul id="orders-nav" class="nav-content collapse" data-bs-parent="#sidebar-nav">
         <li>
@@ -117,6 +103,28 @@
         <li>
           <a href="{{ url('orders/create') }}">
             <i class="bi bi-circle"></i><span>Create Order</span>
+          </a>
+        </li>
+      </ul>
+    </li><!-- End Orders Nav -->
+    <li class="nav-item">
+      <a class="nav-link collapsed" data-bs-target="#my-orders-nav" data-bs-toggle="collapse" href="#">
+        <i class="bi bi-gem"></i><span>My Orders</span><i class="bi bi-chevron-down ms-auto"></i>
+      </a>
+      <ul id="my-orders-nav" class="nav-content collapse" data-bs-parent="#sidebar-nav">
+        <li>
+          <a href="{{ url('my-orders') }}">
+            <i class="bi bi-circle"></i><span>List Orders</span>
+          </a>
+        </li>
+        <li>
+          <a href="{{ url('orders/create') }}">
+            <i class="bi bi-circle"></i><span>Create Order</span>
+          </a>
+        </li>
+        <li>
+          <a href="{{ url('orders/import') }}">
+            <i class="bi bi-circle"></i><span>Create Order Import</span>
           </a>
         </li>
       </ul>
@@ -134,6 +142,18 @@
         <li>
           <a href="{{ url('shippers') }}">
             <i class="bi bi-circle"></i><span>Admin Shippers</span>
+          </a>
+        </li>
+      </ul>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link collapsed" data-bs-target="#cancellation-nav" data-bs-toggle="collapse" href="#">
+        <i class="bi bi-gem"></i><span>Manager Orders Cancel (by post office)</span><i class="bi bi-chevron-down ms-auto"></i>
+      </a>
+      <ul id="cancellation-nav" class="nav-content collapse" data-bs-parent="#sidebar-nav">
+        <li>
+          <a href="{{ url('cancellation-requests') }}">
+            <i class="bi bi-circle"></i><span>Cancelation Request</span>
           </a>
         </li>
       </ul>
@@ -169,6 +189,24 @@
         <li>
           <a href="{{ url('searchOrder') }}">
             <i class="bi bi-circle"></i><span>Tra cứu đơn hàng</span>
+          </a>
+        </li>
+      </ul>
+    </li>
+
+    <li class="nav-item">
+      <a class="nav-link collapsed" data-bs-target="#buucuc-nav" data-bs-toggle="collapse" href="{{ url('/post-office-staff') }}">
+        <i class="bi bi-gem"></i><span>Quản lý nhân viên bưu cục</span><i class="bi bi-chevron-down ms-auto"></i>
+      </a>
+      <ul id="buucuc-nav" class="nav-content collapse" data-bs-parent="#sidebar-nav">
+        <li>
+          <a href="{{  url('/post-office-staff') }}">
+            <i class="bi bi-circle"></i><span>nhân viên bưu cục</span>
+          </a>
+        </li>
+        <li>
+          <a href="{{url('post-office/orders')}}">
+          <i class="bi bi-circle"></i><span>Quản lý đơn hàng theo bưu cục(role post_office_manager)</span>
           </a>
         </li>
       </ul>

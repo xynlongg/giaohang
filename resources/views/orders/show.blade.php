@@ -43,11 +43,11 @@
                         <p><strong>Tổng giá trị hàng:</strong> {{ number_format($order->total_value) }} VND</p>
                         <p><strong>Phí vận chuyển:</strong> {{ number_format($order->shipping_fee) }} VND</p>
                         <p><strong>Tổng cộng:</strong> {{ number_format($order->total_amount) }} VND</p>
-                        <p><strong>Trạng Thái:</strong> {{ $order->status }}</p>
+                        <p><strong>Trạng Thái:</strong> <span class="badge bg-{{ $order->status_class }}">{{ $order->status }}</span></p>
                         <p><strong>Ngày lấy hàng:</strong> {{ $order->pickup_date ? $order->pickup_date->format('d/m/Y H:i') : 'N/A' }}</p>
                         <p><strong>Ngày giao hàng dự kiến:</strong> {{ $order->delivery_date ? $order->delivery_date->format('d/m/Y H:i') : 'N/A' }}</p>
-                        <p><strong>Lấy hàng tại bưu cục:</strong> {{ $order->pickup_type == 'post_office' ? 'Có' : 'Không' }}</p>
-                        @if($order->pickup_type == 'post_office' && $order->pickupLocation)
+                        <p><strong>Lấy hàng tại bưu cục:</strong> {{ $order->is_pickup_at_post_office ? 'Có' : 'Không' }}</p>
+                        @if($order->is_pickup_at_post_office && $order->pickupLocation)
                             <p><strong>Bưu cục lấy hàng:</strong> {{ $order->pickupLocation->name }} - {{ $order->pickupLocation->address }}</p>
                         @endif
                     </div>
@@ -68,30 +68,30 @@
                                 </tr>
                             </thead>
                             <tbody>
-                @foreach($order->locationHistory()->orderBy('timestamp', 'desc')->get() as $history)
-                    <tr>
-                        <td>{{ $history->timestamp->format('d/m/Y H:i:s') }}</td>
-                        <td>
-                            @if($history->location_type == 'sender')
-                                Người gửi
-                            @elseif($history->location_type == 'post_office')
-                                Bưu cục
-                            @elseif($history->location_type == 'receiver')
-                                Người nhận
-                            @else
-                                {{ $history->location_type }}
-                            @endif
-                        </td>
-                        <td>
-                            @if($history->location_type == 'post_office' && $history->postOffice)
-                                {{ $history->postOffice->name }} - 
-                            @endif
-                            {{ $history->address }}
-                        </td>
-                        <td>{{ ucfirst($history->status) }}</td>
-                    </tr>
-                @endforeach
-            </tbody>
+                                @foreach($order->locationHistory()->orderBy('timestamp', 'desc')->get() as $history)
+                                    <tr>
+                                        <td>{{ $history->timestamp->format('d/m/Y H:i:s') }}</td>
+                                        <td>
+                                            @if($history->location_type == 'sender')
+                                                Người gửi
+                                            @elseif($history->location_type == 'post_office')
+                                                Bưu cục
+                                            @elseif($history->location_type == 'receiver')
+                                                Người nhận
+                                            @else
+                                                {{ $history->location_type }}
+                                            @endif
+                                        </td>
+                                        <td>
+                                            @if($history->location_type == 'post_office' && $history->postOffice)
+                                                {{ $history->postOffice->name }} - 
+                                            @endif
+                                            {{ $history->address }}
+                                        </td>
+                                        <td>{{ ucfirst($history->status) }}</td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
                         </table>
                     </div>
                 </div>
@@ -179,17 +179,79 @@
                         <p><strong>Mã theo dõi:</strong> {{ $order->tracking_number }}</p>
                     </div>
                 </div>
+
+                <!-- Hủy đơn hàng -->
+                <div class="card mb-3">
+                    <div class="card-header">
+                        <h2>Hành động</h2>
+                    </div>
+                    <div class="card-body">
+                        <div class="list-group">
+                            @php
+                                $isCancellable = $order->status == 'pending' || 
+                                    ($order->status == 'assigned_to_post_office' && 
+                                    (!$order->pickup_date || now()->lte($order->pickup_date->subDay())));
+                            @endphp
+
+                            @if($isCancellable)
+                                <button type="button" class="list-group-item list-group-item-action list-group-item-danger" data-bs-toggle="modal" data-bs-target="#cancelOrderModal">
+                                    Yêu cầu hủy đơn hàng
+                                </button>
+                            @else
+                                <button type="button" class="list-group-item list-group-item-action list-group-item-danger" disabled>
+                                    Không thể hủy đơn hàng
+                                </button>
+                                <small class="text-muted">Đơn hàng đã quá hạn hủy hoặc đang được xử lý</small>
+                            @endif
+                           
+                        </div>
+                    </div>
+    </div>
+</div>
+
+<!-- Cancel Order Modal -->
+<div class="modal fade" id="cancelOrderModal" tabindex="-1" aria-labelledby="cancelOrderModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="cancelOrderModalLabel">Yêu cầu hủy đơn hàng</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
+            <form action="{{ route('orders.cancel', $order->id) }}" method="POST">
+                @csrf
+                <div class="modal-body">
+                    <p>Bạn chắc chắn muốn hủy đơn hàng này?</p>
+                    <div class="mb-3">
+                        <label for="cancellation_reason" class="form-label">Lý do hủy đơn</label>
+                        <select class="form-select" id="cancellation_reason" name="reason" required>
+                            <option value="">Chọn lý do</option>
+                            <option value="changed_mind">Đổi ý không muốn mua nữa</option>
+                            <option value="found_better_deal">Tìm được sản phẩm tốt hơn</option>
+                            <option value="financial_reasons">Lý do tài chính</option>
+                            <option value="other">Lý do khác</option>
+                        </select>
+                    </div>
+                    <div class="mb-3" id="other_reason_container" style="display: none;">
+                        <label for="other_reason" class="form-label">Lý do khác</label>
+                        <textarea class="form-control" id="other_reason" name="other_reason" rows="3"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+                    <button type="submit" class="btn btn-danger">Gửi yêu cầu hủy đơn</button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
+
+
 @endsection
 
 @push('styles')
 <link href='https://api.mapbox.com/mapbox-gl-js/v2.9.1/mapbox-gl.css' rel='stylesheet' />
 <link rel='stylesheet' href='https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-directions/v4.1.0/mapbox-gl-directions.css' type='text/css' />
 @endpush
-
 
 @push('scripts')
 <script src='https://api.mapbox.com/mapbox-gl-js/v2.9.1/mapbox-gl.js'></script>
@@ -198,6 +260,20 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     console.log('DOM loaded');
+
+    // Hủy đơn
+    const reasonSelect = document.getElementById('cancellation_reason');
+    const otherReasonContainer = document.getElementById('other_reason_container');
+
+    if (reasonSelect) {
+        reasonSelect.addEventListener('change', function() {
+            if (this.value === 'other') {
+                otherReasonContainer.style.display = 'block';
+            } else {
+                otherReasonContainer.style.display = 'none';
+            }
+        });
+    }
 
     var orderId = {{ $order->id }};
     var map, directions, currentMarker, receiverMarker;
@@ -291,13 +367,18 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Cập nhật thông tin đơn hàng
         document.getElementById('current-location').textContent = data.current_location;
-        document.querySelector('.badge').textContent = data.status;
-        document.querySelector('.badge').className = 'badge bg-' + data.status_class;
+        var statusBadge = document.querySelector('.badge');
+        if (statusBadge) {
+            statusBadge.textContent = data.status;
+            statusBadge.className = 'badge bg-' + data.status_class;
+        }
 
         // Cập nhật vị trí hiện tại trên bản đồ
         currentCoordinates = data.current_coordinates;
-        currentMarker.setLngLat(currentCoordinates);
-        currentMarker.getPopup().setHTML("<h3>Vị trí hiện tại</h3><p>" + data.current_location + "</p>");
+        if (currentMarker) {
+            currentMarker.setLngLat(currentCoordinates);
+            currentMarker.getPopup().setHTML("<h3>Vị trí hiện tại</h3><p>" + data.current_location + "</p>");
+        }
 
         // Cập nhật route
         updateRoute();
@@ -307,14 +388,16 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Cập nhật lịch sử vị trí
         var historyTable = document.querySelector('.table tbody');
-        var newRow = document.createElement('tr');
-        newRow.innerHTML = `
-            <td>${data.timestamp}</td>
-            <td>${data.location_type}</td>
-            <td>${data.address}</td>
-            <td>${data.status}</td>
-        `;
-        historyTable.insertBefore(newRow, historyTable.firstChild);
+        if (historyTable) {
+            var newRow = document.createElement('tr');
+            newRow.innerHTML = `
+                <td>${data.timestamp}</td>
+                <td>${data.location_type}</td>
+                <td>${data.address}</td>
+                <td>${data.status}</td>
+            `;
+            historyTable.insertBefore(newRow, historyTable.firstChild);
+        }
 
         console.log('UI updated');
     });

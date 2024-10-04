@@ -4,21 +4,17 @@ namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\URL;
-
+use App\Services\OrderAssignmentService;
 
 class AppServiceProvider extends ServiceProvider
 {
-    /**
-     * Register any application services.
-     */
     public function register(): void
     {
-        //
+        $this->app->singleton(OrderAssignmentService::class, function ($app) {
+            return new OrderAssignmentService();
+        });
     }
 
-    /**
-     * Bootstrap any application services.
-     */
     public function boot()
     {
         if($this->app->environment('local')) {

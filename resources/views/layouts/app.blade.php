@@ -61,6 +61,7 @@
             @yield('content')
         </main>
         <script src='https://api.mapbox.com/mapbox-gl-js/v2.9.1/mapbox-gl.js'></script>
+        <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     @stack('scripts')
 
     <a href="#" class="back-to-top d-flex align-items-center justify-content-center"><i class="bi bi-arrow-up-short"></i></a>
@@ -74,7 +75,7 @@
     <script src="{{asset ('assets/vendor/simple-datatables/simple-datatables.js') }}"></script>
     <script src="{{asset ('assets/vendor/tinymce/tinymce.min.js') }}"></script>
     <script src="{{asset ('assets/vendor/php-email-form/validate.js') }}"></script>
-
+    
     <!-- Template Main JS File -->
     <script src="{{asset ('assets/js/main.js') }}"></script>
     @yield('script')

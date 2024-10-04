@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\PostOffice;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class PostOfficeController extends Controller
 {
@@ -47,13 +48,24 @@ class PostOfficeController extends Controller
             'coordinates' => 'required|string',
         ]);
 
-        $validatedData['coordinates'] = $this->convertCoordinates($validatedData['coordinates']);
+        try {
+            // Convert coordinates
+            $coordinates = $this->convertCoordinates($validatedData['coordinates']);
+            $decodedCoordinates = json_decode($coordinates, true);
 
-        PostOffice::create($validatedData);
+            // Assign latitude and longitude values
+            $validatedData['latitude'] = $decodedCoordinates[1];
+            $validatedData['longitude'] = $decodedCoordinates[0];
+            $validatedData['coordinates'] = $coordinates;
 
-        return redirect()->route('post_offices.index')->with('success', 'Bưu cục đã được tạo thành công.');
+            // Create new post office
+            PostOffice::create($validatedData);
+
+            return redirect()->route('post_offices.index')->with('success', 'Bưu cục đã được tạo thành công.');
+        } catch (\InvalidArgumentException $e) {
+            return redirect()->back()->withInput()->withErrors(['coordinates' => $e->getMessage()]);
+        }
     }
-
     public function update(Request $request, PostOffice $postOffice)
     {
         $validatedData = $request->validate([
@@ -64,13 +76,40 @@ class PostOfficeController extends Controller
             'coordinates' => 'required|string',
         ]);
 
-        $validatedData['coordinates'] = $this->convertCoordinates($validatedData['coordinates']);
+        try {
+            // Xử lý chuỗi JSON coordinates
+            $coordinatesData = json_decode($validatedData['coordinates'], true);
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                throw new \Exception('Lỗi khi xử lý dữ liệu tọa độ: ' . json_last_error_msg());
+            }
 
-        $postOffice->update($validatedData);
+            // Đảm bảo rằng lng và lat là số thực
+            $longitude = floatval($coordinatesData['lng']);
+            $latitude = floatval($coordinatesData['lat']);
 
-        return redirect()->route('post_offices.index')->with('success', 'Bưu cục đã được cập nhật thành công.');
+            $updateData = [
+                'name' => $validatedData['name'],
+                'address' => $validatedData['address'],
+                'district' => $validatedData['district'],
+                'province' => $validatedData['province'],
+                'latitude' => $latitude,
+                'longitude' => $longitude,
+            ];
+
+            $postOffice->update($updateData);
+
+            return redirect()->route('post_offices.index')->with('success', 'Bưu cục đã được cập nhật thành công.');
+        } catch (\Exception $e) {
+            Log::error('Lỗi khi cập nhật bưu cục', [
+                'post_office_id' => $postOffice->id,
+                'input_data' => $validatedData,
+                'error_message' => $e->getMessage(),
+                'error_trace' => $e->getTraceAsString()
+            ]);
+
+            return redirect()->route('post_offices.edit', $postOffice)->withInput()->withErrors(['error' => 'Có lỗi xảy ra khi cập nhật bưu cục: ' . $e->getMessage()]);
+        }
     }
-
     public function getCoordinatesAttribute($value)
     {
         if (is_string($value)) {
@@ -80,27 +119,38 @@ class PostOfficeController extends Controller
     }
     private function convertCoordinates($coordinates)
     {
-        // Nếu coordinates đã là một mảng, trả về nó dưới dạng chuỗi JSON
-        if (is_array($coordinates)) {
+        // If coordinates is already a JSON string, decode and validate it
+        $decoded = json_decode($coordinates, true);
+        if (json_last_error() === JSON_ERROR_NONE) {
+            if (is_array($decoded) && isset($decoded[0], $decoded[1]) &&
+                is_numeric($decoded[0]) && is_numeric($decoded[1])) {
+                return json_encode($decoded);
+            }
+        }
+
+        // If coordinates is a string, try to parse it
+        if (is_string($coordinates)) {
+            // Try "longitude,latitude" format
+            $parts = explode(',', $coordinates);
+            if (count($parts) === 2 && is_numeric(trim($parts[0])) && is_numeric(trim($parts[1]))) {
+                return json_encode([floatval(trim($parts[0])), floatval(trim($parts[1]))]);
+            }
+
+            // Try "latitude longitude" format
+            $parts = preg_split('/\s+/', trim($coordinates));
+            if (count($parts) === 2 && is_numeric($parts[0]) && is_numeric($parts[1])) {
+                return json_encode([floatval($parts[1]), floatval($parts[0])]);
+            }
+        }
+
+        // If coordinates is an array, validate and encode it
+        if (is_array($coordinates) && isset($coordinates[0], $coordinates[1]) &&
+            is_numeric($coordinates[0]) && is_numeric($coordinates[1])) {
             return json_encode($coordinates);
         }
 
-        // Nếu coordinates là một chuỗi, thử parse nó
-        $decoded = json_decode($coordinates, true);
-
-        // Nếu parse thành công và kết quả là một mảng hợp lệ, trả về chuỗi JSON
-        if (is_array($decoded) && count($decoded) === 2 &&
-            is_numeric($decoded[0]) && is_numeric($decoded[1])) {
-            return json_encode($decoded);
-        }
-
-        // Nếu không phải là JSON hợp lệ, giả sử đó là một chuỗi "longitude,latitude"
-        $parts = explode(',', $coordinates);
-        if (count($parts) === 2 && is_numeric($parts[0]) && is_numeric($parts[1])) {
-            return json_encode([$parts[0], $parts[1]]);
-        }
-
-        // Nếu không phù hợp với bất kỳ format nào, ném ra exception
-        throw new \InvalidArgumentException("Invalid coordinates format");
+        // If we reach here, the input format is invalid
+        throw new \InvalidArgumentException("Invalid coordinates format. Expected JSON array, 'longitude,latitude' string, or 'latitude longitude' string.");
     }
+
 }

@@ -14,11 +14,13 @@ use Carbon\Carbon;
 use App\Models\PostOffice;
 use App\Models\ProductCategory;
 use App\Models\WarrantyPackage;
+use App\Services\OrderAssignmentService;
 
 
 class OrdersImport implements ToModel, WithHeadingRow
 {
     protected $commonData;
+    protected $orderAssignmentService;
     protected $columnMap = [
         'receiver_name' => ['ten nguoi nhan', 'ten_nguoi_nhan'],
         'receiver_phone' => ['so dien thoai nguoi nhan', 'so_dien_thoai_nguoi_nhan'],
@@ -32,9 +34,11 @@ class OrdersImport implements ToModel, WithHeadingRow
     ];
 
 
-    public function __construct($commonData)
+    public function __construct($commonData, OrderAssignmentService $orderAssignmentService)
     {
         $this->commonData = $commonData;
+        $this->orderAssignmentService = $orderAssignmentService;
+
     }
 
     public function model(array $row)
@@ -112,7 +116,12 @@ class OrdersImport implements ToModel, WithHeadingRow
                     'weight' => $productData['weight'],
                 ]);
             }
-            
+            //gán bưu cục
+            $assignmentResult = $this->orderAssignmentService->assignOrderToPostOffice($order);
+            if (!$assignmentResult) {
+                Log::error("Không thể gán đơn hàng cho bưu cục", ['order_id' => $order->id]);
+                throw new \Exception("Không thể gán đơn hàng cho bưu cục");
+            }
             return $order;
         } catch (\Exception $e) {
             Log::error('Lỗi khi xử lý hàng: ' . $e->getMessage(), ['exception' => $e, 'row' => $row]);

@@ -21,4 +21,8 @@ class ShipperProfile extends Model
     {
         return $this->belongsTo(User::class);
     }
+    public function postOffices()
+    {
+        return $this->belongsToMany(PostOffice::class, 'post_office_shippers');
+    }
 }
