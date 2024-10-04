@@ -18,12 +18,24 @@ use App\Http\Controllers\CancellationRequestController;
 
 // Authentication Routes
 Auth::routes();
+<<<<<<< HEAD
 
 // Public Routes
 Route::view('/register-shipper', 'shipper.shipper-registration')->name('shipper.shipper-registration');
 Route::get('/web-test', function () {
     return 'Web test successful';
 });
+=======
+
+// Public Routes
+Route::view('/register-shipper', 'shipper.shipper-registration')->name('shipper.shipper-registration');
+
+Route::get('/dispatch-test-job', function () {
+    \App\Jobs\TestJob::dispatch();
+    return 'Test job dispatched!';
+});
+
+>>>>>>> 0a21cfa (update 04/10)
 // Home route
 Route::get('/', function () {
     if (Auth::check()) {
@@ -126,4 +138,9 @@ Route::middleware(['auth'])->group(function () {
 // Redirect all other routes to login if not authenticated
 Route::fallback(function () {
     return redirect()->route('login');
+<<<<<<< HEAD
 });
+=======
+});
+Broadcast::routes();
+>>>>>>> 0a21cfa (update 04/10)

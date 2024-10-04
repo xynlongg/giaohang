@@ -16,6 +16,10 @@ use SimpleSoftwareIO\QrCode\Facades\QrCode;
 use Illuminate\Support\Str;
 use App\Events\OrderUpdated;
 use App\Events\OrderCreated;
+<<<<<<< HEAD
+=======
+use App\Events\OrderStatusUpdated;
+>>>>>>> 0a21cfa (update 04/10)
 use App\Models\UserAddress;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Imports\OrdersImport;
@@ -93,9 +97,15 @@ class OrderController extends Controller
         
             return view('orders.create', compact('products', 'postOffices', 'userAddresses', 'productCategories'));
         }
+<<<<<<< HEAD
         public function store(Request $request)
         {
             Log::info('Attempting to create a new order', ['request' => $request->all()]);
+=======
+    public function store(Request $request)
+    {
+        Log::info('Attempting to create a new order', ['request' => $request->all()]);
+>>>>>>> 0a21cfa (update 04/10)
         
             try {
                 DB::beginTransaction();
@@ -277,8 +287,17 @@ class OrderController extends Controller
         
                 DB::commit();
                 Log::info('Order creation transaction committed', ['order_id' => $order->id]);
+<<<<<<< HEAD
         
                 if ($request->ajax()) {
+=======
+                
+
+                if ($request->ajax()) {
+                    Log::info('Đang cố gắng gửi sự kiện OrderCreated', ['order_id' => $order->id]);
+                    event(new OrderCreated($order));
+                    Log::info('Đã gửi sự kiện OrderCreated', ['order_id' => $order->id]);
+>>>>>>> 0a21cfa (update 04/10)
                     return response()->json([
                         'success' => true,
                         'message' => 'Đơn hàng đã được tạo thành công.',
@@ -293,6 +312,7 @@ class OrderController extends Controller
                 }
             } catch (\Exception $e) {
                 DB::rollBack();
+                Log::error('Lỗi khi gửi sự kiện OrderCreated: ' . $e->getMessage());
                 Log::error('Error creating order', [
                     'error_message' => $e->getMessage(),
                     'error_trace' => $e->getTraceAsString(),
@@ -305,12 +325,20 @@ class OrderController extends Controller
                         'message' => 'Đã xảy ra lỗi khi tạo đơn hàng: ' . $e->getMessage()
                     ], 500);
                 } else {
+<<<<<<< HEAD
+=======
+
+>>>>>>> 0a21cfa (update 04/10)
                     return redirect()->back()->with('error', 'Đã xảy ra lỗi khi tạo đơn hàng: ' . $e->getMessage())->withInput();
                 }
             }
         }
         
+<<<<<<< HEAD
         private function parseCoordinates($coordinates)
+=======
+    private function parseCoordinates($coordinates)
+>>>>>>> 0a21cfa (update 04/10)
         {
             if (is_string($coordinates)) {
                 $coords = json_decode($coordinates, true);
@@ -354,6 +382,7 @@ class OrderController extends Controller
 
         return redirect()->route('orders.index')->with('success', 'Đã cập nhật vị trí bưu cục cho tất cả đơn hàng.');
     }
+<<<<<<< HEAD
         
         
 
@@ -411,6 +440,9 @@ class OrderController extends Controller
         
         //     return true;
         // }
+=======
+    
+>>>>>>> 0a21cfa (update 04/10)
         
         private function extractProvinceFromAddress($address)
         {
@@ -776,6 +808,7 @@ class OrderController extends Controller
 
                 // Dispatch OrderUpdated event
                 event(new OrderUpdated($order));
+                event(new OrderStatusUpdated($order));
 
                 Log::info('Order updated successfully', ['order_id' => $order->id]);
 
