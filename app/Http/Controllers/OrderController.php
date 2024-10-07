@@ -29,7 +29,9 @@ use App\Models\WarrantyPackage;
 use App\Services\OrderAssignmentService;
 use App\Models\OrderCancellationRequest;
 use App\Notifications\OrderCancellationRequested;
-
+use App\Listeners\SendOrderNotification;
+use App\Events\ImportOrderCreated;
+use App\Events\OrderDeleted;
 class OrderController extends Controller
 {
     protected $orderAssignmentService;
@@ -225,6 +227,7 @@ class OrderController extends Controller
                     'current_location_type' => 'sender',
                     'current_coordinates' => $senderCoordinates,
                     'current_location' => $validatedData['sender_address'],
+                    'user_id' => auth()->id(),
                 ]);
         
                 if (!$order->save()) {
@@ -288,16 +291,24 @@ class OrderController extends Controller
                 DB::commit();
                 Log::info('Order creation transaction committed', ['order_id' => $order->id]);
 <<<<<<< HEAD
+<<<<<<< HEAD
         
                 if ($request->ajax()) {
 =======
                 
+=======
+>>>>>>> 7d3f46b (update realtime redis)
 
+                event(new OrderCreated($order));
+                Log::info('OrderCreated event dispatched', ['order_id' => $order->id]);
                 if ($request->ajax()) {
+<<<<<<< HEAD
                     Log::info('Đang cố gắng gửi sự kiện OrderCreated', ['order_id' => $order->id]);
                     event(new OrderCreated($order));
                     Log::info('Đã gửi sự kiện OrderCreated', ['order_id' => $order->id]);
 >>>>>>> 0a21cfa (update 04/10)
+=======
+>>>>>>> 7d3f46b (update realtime redis)
                     return response()->json([
                         'success' => true,
                         'message' => 'Đơn hàng đã được tạo thành công.',
@@ -332,7 +343,7 @@ class OrderController extends Controller
                     return redirect()->back()->with('error', 'Đã xảy ra lỗi khi tạo đơn hàng: ' . $e->getMessage())->withInput();
                 }
             }
-        }
+    }
         
 <<<<<<< HEAD
         private function parseCoordinates($coordinates)
@@ -639,9 +650,6 @@ class OrderController extends Controller
             ]);
         }
         
-    
-        
-
         public function showSearchForm()
         {
             return view('orders.search_order_form');
@@ -665,25 +673,39 @@ class OrderController extends Controller
         {
             try {
                 $order = Order::findOrFail($id);
-
-                // Optionally, you can add additional logic here, like checking if the user is authorized to delete this order
-
+        
+                // Kiểm tra xem người dùng hiện tại có phải là admin không
+                if (!Auth::user()->hasRole('admin')) {
+                    return response()->json(['error' => 'Chỉ admin mới có quyền xóa đơn hàng.'], 403);
+                }
+        
+                DB::beginTransaction();
+        
+                // Xóa các bản ghi liên quan (nếu có)
+                // Ví dụ: $order->orderItems()->delete();
+        
                 $order->delete();
+        
+                DB::commit();
+        
+                event(new OrderDeleted($id));
+        
+                return response()->json(['success' => true, 'message' => 'Đơn hàng đã được xóa thành công.']);
+       
+                 return redirect()->route('orders.index')->with('success', 'Đã cập nhật vị trí bưu cục cho tất cả đơn hàng.');
 
-                return redirect()->route('orders.index')->with('success', 'Đơn hàng đã được xóa thành công.');
-
+        
             } catch (\Exception $e) {
-                return redirect()->route('orders.index')->with('error', 'Đã xảy ra lỗi khi xóa đơn hàng: ' . $e->getMessage());
+                DB::rollBack();
+                Log::error('Error deleting order: ' . $e->getMessage());
+                return response()->json(['error' => 'Đã xảy ra lỗi khi xóa đơn hàng.'], 500);
             }
         }
-
         public function showUpdateForm(Order $order)
         {
             $postOffices = PostOffice::all();
             return view('orders.update_status', compact('order', 'postOffices'));
         }
-
-        
 
         private function getStatusClass($status)
         {
@@ -764,89 +786,82 @@ class OrderController extends Controller
 
         public function update(Request $request, Order $order)
         {
-            Log::info('Updating order', ['order_id' => $order->id, 'request' => $request->all()]);
-
+            Log::info('Attempting to update order', ['order_id' => $order->id, 'user_id' => Auth::id()]);
+    
             try {
-                $validated = $request->validate([
-                    'post_office_id' => 'required|exists:post_offices,id',
-                    'status' => 'required|in:pending,confirmed,picking_up,at_post_office,delivering,delivered',
-                ]);
-
-                $postOffice = PostOffice::findOrFail($validated['post_office_id']);
-
                 DB::beginTransaction();
+    
+                $validatedData = $request->validate([
+                    'sender_name' => 'required|string|max:255',
+                    'sender_phone' => 'required|string|max:20',
+                    'sender_address' => 'required|string|max:255',
+                    'receiver_name' => 'required|string|max:255',
+                    'receiver_phone' => 'required|string|max:20',
+                    'receiver_address' => 'required|string|max:255',
+                    'is_pickup_at_post_office' => 'required|boolean',
+                    'pickup_location_id' => 'required_if:is_pickup_at_post_office,1|exists:post_offices,id',
+                    'pickup_date' => 'required|date',
+                    'category_id' => 'required|exists:product_categories,id',
+                    'warranty_package_id' => 'required|exists:warranty_packages,id',
+                    'total_weight' => 'required|numeric|min:0',
+                    'total_value' => 'required|numeric|min:0',
+                    'total_cod' => 'required|numeric|min:0',
+                    'products' => 'required|array|min:1',
+                    'products.*.name' => 'required|string|max:255',
+                    'products.*.quantity' => 'required|integer|min:1',
+                    'products.*.price' => 'required|numeric|min:0',
+                    'products.*.weight' => 'required|numeric|min:0',
+                    'products.*.cod_amount' => 'required|numeric|min:0', 
 
-                // Update order
-                $order->update([
-                    'current_location_id' => $postOffice->id,
-                    'current_location_type' => 'post_office',
-                    'current_coordinates' => $postOffice->coordinates,
-                    'current_location' => $postOffice->address,
-                    'status' => $validated['status'],
                 ]);
+    
+                Log::info('Validation passed', ['order_id' => $order->id, 'validated_data' => $validatedData]);
+    
+                // Cập nhật thông tin đơn hàng
+                $order->update($validatedData);
+    
+                // Cập nhật sản phẩm
+                $order->products()->detach();
+                foreach ($validatedData['products'] as $productData) {
+                    $product = Product::firstOrCreate(['name' => $productData['name']], [
+                        'value' => $productData['price'],
+                        'weight' => $productData['weight']
+                    ]);
+    
+                    $order->products()->attach($product->id, [
+                        'quantity' => $productData['quantity'],
+                        'weight' => $productData['weight'],
+                        'cod_amount' => $productData['cod_amount'],
 
-                // Create order status log
-                OrderStatusLog::create([
-                    'order_id' => $order->id,
-                    'status' => $validated['status'],
-                    'description' => "Đơn hàng đã được cập nhật trạng thái: " . ucfirst($validated['status']) . " tại " . $postOffice->name,
-                    'updated_by' => Auth::id(),
-                ]);
-
-                // Create order location history
-                OrderLocationHistory::create([
-                    'order_id' => $order->id,
-                    'location_type' => 'post_office',
-                    'post_office_id' => $postOffice->id,
-                    'address' => $postOffice->address,
-                    'coordinates' => $postOffice->coordinates,
-                    'status' => $validated['status'],
-                    'timestamp' => now(),
-                ]);
-
-                DB::commit();
-
-                // Dispatch OrderUpdated event
-                event(new OrderUpdated($order));
-                event(new OrderStatusUpdated($order));
-
-                Log::info('Order updated successfully', ['order_id' => $order->id]);
-
-                if ($request->wantsJson()) {
-                    return response()->json([
-                        'success' => true,
-                        'message' => 'Cập nhật đơn hàng thành công',
-                        'order' => $order->fresh()->load('locationHistory'),
                     ]);
                 }
-
-                return redirect()->route('orders.show', $order)->with('success', 'Cập nhật đơn hàng thành công');
-
-            } catch (\Illuminate\Validation\ValidationException $e) {
-                Log::error('Validation error while updating order', ['order_id' => $order->id, 'errors' => $e->errors()]);
+    
+                // Tính toán lại tổng khối lượng và giá trị
+                $order->updateTotals();
+    
+                DB::commit();
+    
+                Log::info('Order updated successfully', ['order_id' => $order->id]);
                 
-                if ($request->wantsJson()) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => 'Dữ liệu không hợp lệ',
-                        'errors' => $e->errors(),
-                    ], 422);
-                }
-
+                event(new OrderUpdated($order));
+                return redirect()->route('orders.show', $order)->with('success', 'Đơn hàng đã được cập nhật thành công.');
+    
+            } catch (\Illuminate\Validation\ValidationException $e) {
+                DB::rollBack();
+                Log::error('Validation failed during order update', [
+                    'order_id' => $order->id,
+                    'errors' => $e->errors(),
+                ]);
                 return back()->withErrors($e->errors())->withInput();
-
+    
             } catch (\Exception $e) {
                 DB::rollBack();
-                Log::error('Error updating order', ['order_id' => $order->id, 'error' => $e->getMessage()]);
-
-                if ($request->wantsJson()) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => 'Đã xảy ra lỗi khi cập nhật đơn hàng: ' . $e->getMessage(),
-                    ], 500);
-                }
-
-                return back()->with('error', 'Đã xảy ra lỗi khi cập nhật đơn hàng: ' . $e->getMessage());
+                Log::error('Error updating order', [
+                    'order_id' => $order->id,
+                    'error' => $e->getMessage(),
+                    'trace' => $e->getTraceAsString()
+                ]);
+                return back()->with('error', 'Đã xảy ra lỗi khi cập nhật đơn hàng. Vui lòng thử lại.')->withInput();
             }
         }
 //import file excel orders 
@@ -922,8 +937,11 @@ class OrderController extends Controller
                 $orderAssignmentService = app(OrderAssignmentService::class);
                 $import = new OrdersImport($commonData, $orderAssignmentService);
                 Excel::import($import, $request->file('excel_file'));
-        
+                foreach ($import->getImportedOrders() as $order) {
+                    event(new ImportOrderCreated($order));
+                }
                 return redirect()->route('orders.index')->with('success', 'Đơn hàng đã được nhập thành công.');
+
             } catch (\Exception $e) {
                 Log::error('Lỗi khi nhập đơn hàng: ' . $e->getMessage());
                 return back()->with('error', 'Đã xảy ra lỗi khi nhập đơn hàng: ' . $e->getMessage())->withInput();
@@ -1263,6 +1281,20 @@ class OrderController extends Controller
         return false;
     }
 
+    public function edit(Order $order)
+    {
+        // Kiểm tra quyền truy cập
+        if (!Auth::user()->hasRole('admin') && !$this->isOrderOwner($order)) {
+            return redirect()->route('orders.index')->with('error', 'Bạn không có quyền chỉnh sửa đơn hàng này.');
+        }
+
+        $postOffices = PostOffice::all();
+        $productCategories = ProductCategory::with('warrantyPackages')->get();
+        $warrantyPackages = WarrantyPackage::all();
+
+        return view('orders.edit', compact('order', 'postOffices', 'productCategories', 'warrantyPackages'));
+    }
+    
     public function show(Order $order)
     {
         if (Auth::user()->hasRole('admin') || $this->isOrderOwner($order)) {

@@ -23,11 +23,11 @@ class EventServiceProvider extends ServiceProvider
         Registered::class => [
             SendEmailVerificationNotification::class,
         ],
-        Login::class => [
-            BroadcastUserLoginNotification::class
+        OrderCreated::class => [
+            OrderCreatedListener::class,
         ],
-        Logout::class => [
-            BroadcastUserLogoutNotification::class
+        'App\Events\OrderCreated' => [
+            'App\Listeners\SendOrderNotification',
         ],
     ];
 

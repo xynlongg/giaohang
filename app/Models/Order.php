@@ -163,5 +163,41 @@ class Order extends Model
     {
         return $this->hasMany(OrderStatusUpdate::class);
     }
-    
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
+    public function updateTotals()
+    {
+        $totalWeight = 0;
+        $totalCod = 0;
+        $totalValue = 0;
+
+        foreach ($this->products as $product) {
+            $totalWeight += $product->pivot->weight * $product->pivot->quantity;
+            $totalCod += $product->pivot->cod_amount * $product->pivot->quantity;
+            $totalValue += $product->value * $product->pivot->quantity;
+        }
+
+        $this->total_weight = $totalWeight;
+        $this->total_cod = $totalCod;
+        $this->total_value = $totalValue;
+        
+        // Tính toán shipping_fee dựa trên logic của bạn
+        // Ví dụ:
+        $this->shipping_fee = $this->calculateShippingFee($totalWeight);
+
+        $this->total_amount = $totalCod + $this->shipping_fee;
+
+        $this->save();
+    }
+
+    private function calculateShippingFee($weight)
+    {
+        // Implement your shipping fee calculation logic here
+        // This is just a simple example
+        $baseRate = 20000; // VND
+        $ratePerKg = 5000; // VND per kg
+        return $baseRate + ($weight * $ratePerKg);
+    }
 }

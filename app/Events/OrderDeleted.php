@@ -1,22 +1,22 @@
 <?php
+
 namespace App\Events;
 
-use App\Models\Order;
 use Illuminate\Broadcasting\Channel;
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcastNow;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
-class OrderUpdated implements ShouldBroadcastNow
+class OrderDeleted implements ShouldBroadcastNow
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
-    public $order;
+    public $orderId;
 
-    public function __construct(Order $order)
+    public function __construct($orderId)
     {
-        $this->order = $order->load('currentLocation');
+        $this->orderId = $orderId;
     }
 
     public function broadcastOn()
@@ -26,11 +26,11 @@ class OrderUpdated implements ShouldBroadcastNow
 
     public function broadcastAs()
     {
-        return 'order-updated';
+        return 'order-deleted';
     }
 
     public function broadcastWith()
     {
-        return ['order' => $this->order->toArray()];
+        return ['orderId' => $this->orderId];
     }
 }

@@ -15,7 +15,8 @@ return [
     |
     */
 
-    'default' => env('BROADCAST_DRIVER', 'pusher'),
+    'default' => env('BROADCAST_DRIVER', 'redis'),
+
     /*
     |--------------------------------------------------------------------------
     | Broadcast Connections
@@ -51,12 +52,15 @@ return [
             'driver' => 'ably',
             'key' => env('ABLY_KEY'),
         ],
-
-        'redis' => [
+       'redis' => [
             'driver' => 'redis',
             'connection' => 'default',
         ],
-
+        'socket.io' => [
+            'driver' => 'socket.io',
+            'host' => env('LARAVEL_ECHO_SERVER_HOST', '0.0.0.0'),
+            'port' => env('LARAVEL_ECHO_SERVER_PORT', 6001),
+        ],
         'log' => [
             'driver' => 'log',
         ],

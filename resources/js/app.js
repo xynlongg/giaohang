@@ -1,5 +1,7 @@
 import 'bootstrap/dist/css/bootstrap.css';
 import 'bootstrap/dist/js/bootstrap.js';
+import './realtime-orders';
+import './bootstrap';
 
 // Nếu bạn vẫn muốn sử dụng axios trong project Laravel
 import axios from 'axios';

@@ -13,6 +13,7 @@ use App\Models\Role;
 use Spatie\Permission\Traits\HasRoles;
 use App\Models\ShipperProfile;
 
+
 class User extends Authenticatable
 {
     use HasApiTokens, HasFactory, Notifiable, Notifiable, HasRoles;
@@ -25,13 +26,13 @@ class User extends Authenticatable
      */
     protected $fillable = [
         'name',
-        'avatar',
         'email',
+        'avatar',
+        'email_verified_at',
         'password',
-        'phone',
-        'latitude',
-        'longitude',
-        'area',
+        'remember_token',
+        
+        
     ];
 
     /**

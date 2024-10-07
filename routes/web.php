@@ -114,7 +114,7 @@ Route::middleware(['auth'])->group(function () {
             
             // Order Management
             Route::get('/orders/{order}/update', [OrderController::class, 'showUpdateForm'])->name('orders.showUpdateForm');
-            
+            Route::get('/orders/{order}/edit', [OrderController::class, 'edit'])->name('orders.edit');
             // Product Category and Warranty Package Management
             Route::resource('product-categories', ProductCategoryController::class);
             Route::resource('warranty-packages', WarrantyPackageController::class);

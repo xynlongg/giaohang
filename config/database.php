@@ -14,7 +14,8 @@ return [
     | you may use many connections at once using the Database library.
     |
     */
-
+    
+    // 'default' should be a string, not an array
     'default' => env('DB_CONNECTION', 'mysql'),
 
     /*
@@ -32,7 +33,7 @@ return [
     | choice installed on your machine before you begin development.
     |
     */
-
+    
     'connections' => [
 
         'sqlite' => [
@@ -118,6 +119,25 @@ return [
     | such as APC or Memcached. Laravel makes it easy to dig right in.
     |
     */
+    
+    'redis' => [
 
+        'client' => 'predis',
+
+        'default' => [
+            'host' => env('REDIS_HOST', '127.0.0.1'),
+            'password' => env('REDIS_PASSWORD', null),
+            'port' => env('REDIS_PORT', 6379),
+            'database' => 0,
+        ],
+
+        'cache' => [
+            'host' => env('REDIS_HOST_1', '127.0.0.1'),
+            'password' => env('REDIS_PASSWORD'),
+            'port' => env('REDIS_PORT_1', 6379),
+            'database' => 0,
+        ],
+
+    ],
 
 ];

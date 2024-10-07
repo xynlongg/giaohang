@@ -7,8 +7,9 @@ use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcastNow;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\Log;
 
-class OrderUpdated implements ShouldBroadcastNow
+class ImportOrderCreated implements ShouldBroadcastNow
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
@@ -26,7 +27,7 @@ class OrderUpdated implements ShouldBroadcastNow
 
     public function broadcastAs()
     {
-        return 'order-updated';
+        return 'import-orders';
     }
 
     public function broadcastWith()

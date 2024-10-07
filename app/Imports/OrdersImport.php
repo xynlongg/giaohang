@@ -2,6 +2,7 @@
 
 namespace App\Imports;
 
+use App\Events\ImportOrderCreated;
 use App\Models\Order;
 use App\Models\Product;
 use Maatwebsite\Excel\Concerns\ToModel;
@@ -15,6 +16,7 @@ use App\Models\PostOffice;
 use App\Models\ProductCategory;
 use App\Models\WarrantyPackage;
 use App\Services\OrderAssignmentService;
+
 
 
 class OrdersImport implements ToModel, WithHeadingRow
@@ -107,7 +109,7 @@ class OrdersImport implements ToModel, WithHeadingRow
             ]);
             
             $order->save();
-            
+            $this->importedOrders[] = $order;
             foreach ($products as $productData) {
                 $product = $this->findOrCreateProduct($productData);
                 $order->products()->attach($product->id, [
@@ -122,13 +124,17 @@ class OrdersImport implements ToModel, WithHeadingRow
                 Log::error("Không thể gán đơn hàng cho bưu cục", ['order_id' => $order->id]);
                 throw new \Exception("Không thể gán đơn hàng cho bưu cục");
             }
+
             return $order;
         } catch (\Exception $e) {
             Log::error('Lỗi khi xử lý hàng: ' . $e->getMessage(), ['exception' => $e, 'row' => $row]);
             throw $e;
         }
     }
-    
+    public function getImportedOrders()
+    {
+        return $this->importedOrders;
+    }
     private function calculateEstimatedDeliveryDate($distance, $pickupDate)
     {
         $deliveryDate = clone $pickupDate;

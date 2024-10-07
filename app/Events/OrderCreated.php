@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Events;
 
 <<<<<<< HEAD
@@ -8,15 +7,19 @@ use App\Models\Order;
 >>>>>>> 0a21cfa (update 04/10)
 use Illuminate\Broadcasting\Channel;
 use Illuminate\Broadcasting\InteractsWithSockets;
-use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
+use Illuminate\Contracts\Broadcasting\ShouldBroadcastNow;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
+<<<<<<< HEAD
 <<<<<<< HEAD
 use App\Models\Order;
 =======
 >>>>>>> 0a21cfa (update 04/10)
+=======
+use Illuminate\Support\Facades\Log;
+>>>>>>> 7d3f46b (update realtime redis)
 
-class OrderCreated implements ShouldBroadcast
+class OrderCreated implements ShouldBroadcastNow
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
@@ -24,11 +27,13 @@ class OrderCreated implements ShouldBroadcast
 
     public function __construct(Order $order)
     {
-        $this->order = $order;
+        $this->order = $order->load('currentLocation');
+        Log::info('OrderCreated event constructed', ['order_id' => $order->id]);
     }
 
     public function broadcastOn()
     {
+<<<<<<< HEAD
 <<<<<<< HEAD
         return new Channel('post-office.' . $this->order->current_location_id);
     }
@@ -56,16 +61,19 @@ class OrderCreated implements ShouldBroadcast
             Log::error('Lỗi khi tạo kênh Pusher: ' . $e->getMessage());
             return null;
         }
+=======
+        return new Channel('orders');
+>>>>>>> 7d3f46b (update realtime redis)
     }
-    
+
     public function broadcastAs()
     {
-        Log::info('Gửi sự kiện OrderCreated');
         return 'OrderCreated';
     }
-    
+
     public function broadcastWith()
     {
+<<<<<<< HEAD
         try {
             Log::info('Chuẩn bị dữ liệu đơn hàng để gửi', ['order' => $this->order->toArray()]);
             return [
@@ -76,5 +84,12 @@ class OrderCreated implements ShouldBroadcast
             return [];
         }
 >>>>>>> 0a21cfa (update 04/10)
+=======
+        $data = [
+            'order' => $this->order->toArray(),
+        ];
+        Log::info('OrderCreated broadcastWith data', $data);
+        return $data;
+>>>>>>> 7d3f46b (update realtime redis)
     }
 }
