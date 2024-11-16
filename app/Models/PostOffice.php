@@ -36,10 +36,7 @@ class PostOffice extends Model
     {
         return json_decode($value, true);
     }
-    public function users()
-    {
-        return $this->belongsToMany(User::class, 'post_office_user');
-    }
+  
     public function managedOrders()
     {
         return $this->belongsToMany(Order::class, 'post_office_orders')
@@ -49,4 +46,18 @@ class PostOffice extends Model
     {
         return $this->belongsToMany(Shipper::class, 'post_office_shippers')->withTimestamps();
     }
+    public function users()
+    {
+        return $this->belongsToMany(User::class, 'post_office_user', 'post_office_id', 'user_id')
+            ->withTimestamps();
+    }
+
+    public function distributionStaff()
+    {
+        return $this->belongsToMany(User::class, 'post_office_user', 'post_office_id', 'user_id')
+            ->whereHas('roles', function($query) {
+                $query->whereIn('name', ['local_distribution_staff', 'post_office_staff']);
+            });
+    }
+
 }

@@ -1,55 +1,85 @@
 <style>
-  .logout-button {
-    margin-right: 40px;
-    color: blue;
-    font-style: italic;
-    padding: 10px 20px;
-    background-color: #f8f9fa;
-    border-radius: 5px;
-    transition: background-color 0.3s ease, color 0.3s ease;
-  }
+  /* Logo styling */
+.logo img {
+  max-height: 40px;
+  width: auto;
+  object-fit: contain;
+  margin-right: 10px;
+}
 
-  .logout-button:hover {
-    background-color: #dc3545;
-    color: red;
-  }
+/* Profile image styling */
+.nav-profile img {
+  width: 36px;
+  height: 36px;
+  object-fit: cover;
+  border-radius: 50%;
+}
 
-  .dropdown-menu {
-    display: none;
-    position: absolute;
-    right: 0;
-    background-color: #fff;
-    border: 1px solid #ccc;
-    border-radius: 5px;
-    margin-top: 10px;
-    min-width: 150px; /* Thêm width để tránh vấn đề layout */
-  }
+.rounded-circle {
+  aspect-ratio: 1/1;
+  object-fit: cover;
+}
 
-  .nav-item.dropdown.open .dropdown-menu {
-    display: block;
-  }
-  .search-results {
-    position: absolute;
-    top: 100%;
-    left: 0;
-    right: 0;
-    background-color: white;
-    border: 1px solid #ddd;
-    border-top: none;
-    max-height: 300px;
-    overflow-y: auto;
-    display: none;
-  }
+/* General image rules */
+img {
+  max-width: 100%;
+  height: auto;
+}
 
-  .search-result-item {
-    padding: 10px;
-    border-bottom: 1px solid #eee;
-  }
+/* Rest of your existing styles */
+.logout-button {
+  margin-right: 40px;
+  color: blue;
+  font-style: italic;
+  padding: 10px 20px;
+  background-color: #f8f9fa;
+  border-radius: 5px;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
 
-  .search-result-item:last-child {
-    border-bottom: none;
-  }
+.logout-button:hover {
+  background-color: #dc3545;
+  color: red;
+}
+
+.dropdown-menu {
+  display: none;
+  position: absolute;
+  right: 0;
+  background-color: #fff;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  margin-top: 10px;
+  min-width: 150px;
+}
+
+.nav-item.dropdown.open .dropdown-menu {
+  display: block;
+}
+
+.search-results {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background-color: white;
+  border: 1px solid #ddd;
+  border-top: none;
+  max-height: 300px;
+  overflow-y: auto;
+  display: none;
+}
+
+.search-result-item {
+  padding: 10px;
+  border-bottom: 1px solid #eee;
+}
+
+.search-result-item:last-child {
+  border-bottom: none;
+}
 </style>
+
 
 <header id="header" class="header fixed-top d-flex align-items-center">
   <div class="d-flex align-items-center justify-content-between">

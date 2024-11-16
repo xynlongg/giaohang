@@ -13,43 +13,103 @@ class OrderAssignmentService
 {
     private $apiUrl = 'https://provinces.open-api.vn/api/';
 
+  
     public function assignOrderToPostOffice(Order $order)
     {
-        Log::info("Bắt đầu gán đơn hàng cho bưu cục", ['order_id' => $order->id, 'sender_address' => $order->sender_address]);
-    
-        $addressInfo = $this->getAddressInfo($order->sender_address);
-    
-        if (!$addressInfo) {
-            Log::error("Không thể trích xuất thông tin địa chỉ từ: " . $order->sender_address);
-            return false;
-        }
-    
-        Log::info("Đã trích xuất thông tin địa chỉ", ['addressInfo' => $addressInfo]);
-    
-        $postOffice = $this->findMatchingPostOffice($addressInfo['district'], $addressInfo['province']);
-    
-        if (!$postOffice) {
-            Log::error("Không tìm thấy bưu cục cho quận/huyện: {$addressInfo['district']} và tỉnh/thành phố: {$addressInfo['province']}");
-            return false;
-        }
-    
-        Log::info("Đã tìm thấy bưu cục phù hợp", ['post_office_id' => $postOffice->id, 'post_office_name' => $postOffice->name]);
-    
-        $order->update([
-            'current_location_id' => $postOffice->id,
-            'current_location_type' => 'post_office',
-            'current_coordinates' => $postOffice->coordinates,
-            'current_location' => $postOffice->address,
-            'status' => 'pending',
+        Log::info('Bắt đầu gán đơn hàng cho bưu cục', [
+            'order_id' => $order->id,
+            'sender_coordinates' => $order->sender_coordinates
         ]);
-    
-        $order->postOffices()->attach($postOffice->id);
-    
-        Log::info("Đơn hàng đã được gán cho bưu cục thành công", ['order_id' => $order->id, 'post_office_id' => $postOffice->id]);
-    
+
+        $senderCoordinates = $order->sender_coordinates;
+        if (!is_array($senderCoordinates) || count($senderCoordinates) !== 2) {
+            Log::error('Tọa độ người gửi không hợp lệ', ['sender_coordinates' => $senderCoordinates]);
+            return false;
+        }
+
+        $senderInfo = $this->getLocationInfo($senderCoordinates[1], $senderCoordinates[0]);
+        if (!$senderInfo) {
+            Log::error('Không thể lấy thông tin địa chỉ từ tọa độ', ['coordinates' => $senderCoordinates]);
+            return false;
+        }
+
+        $nearestPostOffice = $this->findNearestPostOffice($senderCoordinates[1], $senderCoordinates[0], $senderInfo['district']);
+
+        if (!$nearestPostOffice) {
+            Log::error('Không tìm thấy bưu cục phù hợp', ['sender_coordinates' => $senderCoordinates]);
+            return false;
+        }
+
+        $order->postOffices()->attach($nearestPostOffice->id);
+        $order->update([
+            'current_location_id' => $nearestPostOffice->id,
+            'current_location_type' => 'post_office',
+            'current_coordinates' => [$nearestPostOffice->longitude, $nearestPostOffice->latitude],
+            'current_location' => $nearestPostOffice->address,
+        ]);
+
+        Log::info('Đã gán đơn hàng cho bưu cục', [
+            'order_id' => $order->id,
+            'post_office_id' => $nearestPostOffice->id
+        ]);
+
         return true;
     }
+    private function getLocationInfo($lat, $lon)
+    {
+        $response = Http::get("https://api.mapbox.com/geocoding/v5/mapbox.places/{$lon},{$lat}.json", [
+            'access_token' => env('MAPBOX_ACCESS_TOKEN'),
+            'types' => 'place,district,locality',
+            'language' => 'vi'
+        ]);
 
+        if ($response->successful()) {
+            $data = $response->json();
+            $features = $data['features'];
+
+            $city = null;
+            $district = null;
+
+            foreach ($features as $feature) {
+                if ($feature['place_type'][0] === 'place') {
+                    $city = $feature['text'];
+                } elseif ($feature['place_type'][0] === 'district' || $feature['place_type'][0] === 'locality') {
+                    $district = $feature['text'];
+                }
+
+                if ($city && $district) break;
+            }
+
+            return [
+                'city' => $city,
+                'district' => $district,
+            ];
+        }
+
+        return null;
+    }
+    private function findNearestPostOffice($lat, $lon, $senderDistrict)
+    {
+        $postOffices = PostOffice::all();
+        $nearestPostOffice = null;
+        $minDistance = PHP_FLOAT_MAX;
+
+        foreach ($postOffices as $postOffice) {
+            $distance = $this->calculateDistance($lat, $lon, $postOffice->latitude, $postOffice->longitude);
+            
+            // Ưu tiên bưu cục cùng quận/huyện
+            if ($postOffice->district == $senderDistrict) {
+                return $postOffice;
+            }
+
+            if ($distance < $minDistance) {
+                $minDistance = $distance;
+                $nearestPostOffice = $postOffice;
+            }
+        }
+
+        return $nearestPostOffice;
+    }
     private function getAddressInfo($address)
     {
         Log::info("Bắt đầu trích xuất thông tin địa chỉ", ['address' => $address]);
@@ -206,5 +266,16 @@ class OrderAssignmentService
             }
         }
         return $name;
+    }
+    private function calculateDistance($lat1, $lon1, $lat2, $lon2)
+    {
+        $earthRadius = 6371; // km
+        $dLat = deg2rad($lat2 - $lat1);
+        $dLon = deg2rad($lon2 - $lon1);
+        $a = sin($dLat/2) * sin($dLat/2) + cos(deg2rad($lat1)) * cos(deg2rad($lat2)) * sin($dLon/2) * sin($dLon/2);
+        $c = 2 * atan2(sqrt($a), sqrt(1-$a));
+        $distance = $earthRadius * $c;
+        
+        return $distance;
     }
 }

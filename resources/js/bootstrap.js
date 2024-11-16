@@ -28,4 +28,14 @@ window.Echo.connector.socket.on('disconnect', () => {
 window.Echo.connector.socket.on('error', (error) => {
     console.error('Lỗi Laravel Echo:', error);
 });
+// Đăng ký kênh và lắng nghe sự kiện
+window.Echo.channel('orders')
+    .listen('.ShipperAssigned', (e) => {
+        console.log('Sự kiện ShipperAssigned nhận được:', e);
+        // Xử lý sự kiện ở đây
+    })
+    .listen('.OrderStatusUpdated', (e) => {
+        console.log('Sự kiện OrderStatusUpdated nhận được:', e);
+        // Xử lý sự kiện ở đây
+    });
 

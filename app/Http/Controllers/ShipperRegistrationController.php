@@ -160,26 +160,22 @@ class ShipperRegistrationController extends Controller
 
     }
 
-   
-
     public function getCities()
     {
         try {
             $response = Http::get('https://provinces.open-api.vn/api/p/');
             
             if ($response->successful()) {
-                $provinces = $response->json();
-                return response()->json($provinces);
+                return response()->json($response->json());
             } else {
                 \Log::error('Failed to fetch provinces: ' . $response->body());
-                return response()->json(['message' => 'Không thể lấy danh sách tỉnh/thành phố'], 500);
+                return response()->json(['error' => 'Không thể lấy danh sách tỉnh/thành phố'], 500);
             }
         } catch (\Exception $e) {
             \Log::error('Exception when fetching provinces: ' . $e->getMessage());
-            return response()->json(['message' => 'Đã xảy ra lỗi khi lấy danh sách tỉnh/thành phố'], 500);
+            return response()->json(['error' => 'Đã xảy ra lỗi khi lấy danh sách tỉnh/thành phố'], 500);
         }
     }
-    
     public function getDistricts($provinceCode)
     {
         try {

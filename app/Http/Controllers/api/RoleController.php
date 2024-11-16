@@ -7,98 +7,110 @@ use App\Models\Role;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
-
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 
 class RoleController extends Controller
 {
     public function index()
     {
-        return response()->json(Role::all());
+        try {
+            $roles = Role::withCount('users')->get();
+            Log::info('Fetched roles:', ['count' => $roles->count()]);
+            
+            if ($roles->isEmpty()) {
+                Log::warning('Không tìm thấy vai trò nào trong cơ sở dữ liệu.');
+                return response()->json([], 200);
+            }
+            
+            return response()->json($roles);
+        } catch (\Exception $e) {
+            Log::error('Lỗi khi lấy danh sách vai trò: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString()
+            ]);
+            return response()->json(['message' => 'Có lỗi xảy ra khi lấy danh sách vai trò'], 500);
+        }
     }
 
     public function store(Request $request)
     {
-        $request->validate([
-            'name' => 'required|string|max:255',
-        ]);
+        DB::beginTransaction();
+        try {
+            $request->validate([
+                'name' => 'required|string|max:255|unique:roles,name',
+            ]);
 
-        $role = Role::create([
-            'name' => $request->name,
-        ]);
+            $role = Role::create([
+                'name' => $request->name,
+            ]);
 
-        return response()->json($role, 201);
+            DB::commit();
+            Log::info('Vai trò mới đã được tạo:', ['role' => $role->toArray()]);
+            return response()->json($role, 201);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Lỗi khi tạo vai trò mới: ' . $e->getMessage(), [
+                'input' => $request->all(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return response()->json(['message' => 'Có lỗi xảy ra khi tạo vai trò mới'], 500);
+        }
     }
 
     public function update(Request $request, $id)
     {
-        $request->validate([
-            'name' => 'required|string|max:255',
-        ]);
+        DB::beginTransaction();
+        try {
+            $role = Role::findOrFail($id);
 
-        $role = Role::findOrFail($id);
-        $role->update([
-            'name' => $request->name,
-        ]);
+            $request->validate([
+                'name' => [
+                    'required',
+                    'string',
+                    'max:255',
+                    Rule::unique('roles')->ignore($role->id),
+                ],
+            ]);
 
-        return response()->json($role, 200);
+            $role->update([
+                'name' => $request->name,
+            ]);
+
+            DB::commit();
+            Log::info('Vai trò đã được cập nhật:', ['role' => $role->toArray()]);
+            return response()->json($role, 200);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Lỗi khi cập nhật vai trò: ' . $e->getMessage(), [
+                'role_id' => $id,
+                'input' => $request->all(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return response()->json(['message' => 'Có lỗi xảy ra khi cập nhật vai trò'], 500);
+        }
     }
 
     public function destroy($id)
     {
-        $role = Role::findOrFail($id);
-        $role->delete();
+        DB::beginTransaction();
+        try {
+            $role = Role::findOrFail($id);
+            
+            if ($role->users()->count() > 0) {
+                throw new \Exception('Không thể xóa vai trò đang được sử dụng bởi người dùng.');
+            }
 
-        return response()->json(null, 204);
-    }
-
-    public function assignRole(Request $request, $userId)
-    {
-        $user = User::findOrFail($userId);
-        $roleId = $request->input('role_id');
-
-        // Check if the user already has 3 roles
-        if ($user->roles()->count() >= 3) {
-            return response()->json(['message' => 'Người dùng đã có 3 vai trò. Không thể thêm vai trò mới.'], 400);
+            $role->delete();
+            DB::commit();
+            Log::info('Vai trò đã được xóa:', ['role_id' => $id]);
+            return response()->json(null, 204);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Lỗi khi xóa vai trò: ' . $e->getMessage(), [
+                'role_id' => $id,
+                'trace' => $e->getTraceAsString()
+            ]);
+            return response()->json(['message' => $e->getMessage()], 422);
         }
-
-        // Check if the user already has the role
-        if ($user->roles()->where('role_user.role_id', $roleId)->exists()) {
-            return response()->json(['message' => 'Người dùng đã có vai trò này. Vui lòng chọn vai trò khác.'], 400);
-        }
-
-        // Assign the role to the user
-        $role = Role::findOrFail($roleId);
-        $user->roles()->attach($role);
-
-        return response()->json(['message' => 'Vai trò đã được phân thành công'], 200);
     }
-    public function removeRole(Request $request, $userId)
-    {
-        $user = User::findOrFail($userId);
-        $roleId = intval($request->input('role_id')); // Chuyển đổi thành số nguyên
-    
-        // Log user roles for debugging
-        Log::info('User Roles:', $user->roles->pluck('id')->toArray());
-    
-        // Check if the user has the role
-        if (!$user->roles()->where('role_user.role_id', $roleId)->exists()) {
-            return response()->json(['message' => 'Người dùng không có vai trò này.'], 400);
-        }
-    
-        // Remove the role from the user
-        $user->roles()->detach($roleId);
-    
-        return response()->json(['message' => 'Vai trò đã được xóa thành công'], 200);
-    }
-    
-    
-    // Method to get current roles of a user
-    public function getUserRoles($userId)
-    {
-        $user = User::findOrFail($userId);
-        $roles = $user->roles()->get();
-
-        return response()->json($roles, 200);
-    }
-
 }

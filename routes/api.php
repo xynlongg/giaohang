@@ -63,6 +63,11 @@ Route::middleware('auth.shipper')->group(function () {
     Route::post('/shipper/orders/{order}/status', [ShipperOrderController::class, 'updateOrderStatus']);
     Route::get('/shipper/orders/{order}/post-office', [ShipperOrderController::class, 'getPostOffice']);
     Route::get('/shipper/orders/{id}', [ShipperOrderController::class, 'getOrderDetail']);
+    Route::get('shipper/deliveryorders', [ShipperOrderController::class, 'getDeliveryOrders'])
+    ->middleware('auth:shipper');
+    Route::get('shipper/deliveryorders/{id}', [ShipperOrderController::class, 'getDeliveryOrderDetail']);
+    Route::post('shipper/deliveryorders/{id}/status', [ShipperOrderController::class, 'updateDeliveryOrderStatus']);
+
 });
 
 

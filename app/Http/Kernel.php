@@ -26,6 +26,7 @@ class Kernel extends HttpKernel
         \Illuminate\Session\Middleware\StartSession::class,
         \App\Http\Middleware\ErrorHandlingMiddleware::class,
 
+
     ];
 
     /**
@@ -80,6 +81,8 @@ class Kernel extends HttpKernel
         'auth.sanctum' => \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
         'ability.shipper' => \App\Http\Middleware\CheckShipperAbility::class,
         'auth.shipper' => \App\Http\Middleware\ShipperTokenMiddleware::class,
+        'log.route' => \App\Http\Middleware\LogRoute::class,
+        'can' => \Illuminate\Auth\Middleware\Authorize::class,
 
     ];
 }

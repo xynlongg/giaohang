@@ -63,29 +63,38 @@
     let isEmailVerified = false;
 
     async function fetchCities() {
-        const citySelect = document.getElementById('city');
-        try {
-            const response = await axios.get('/get-cities');
+    const citySelect = document.getElementById('city');
+    try {
+        const response = await axios.get('/get-cities');
+        if (Array.isArray(response.data)) {
             response.data.forEach(province => {
                 const option = document.createElement('option');
                 option.value = province.code;
                 option.textContent = province.name;
                 citySelect.appendChild(option);
             });
+        } else if (response.data.error) {
+            console.error('Error from server:', response.data.error);
+            alert('Lỗi: ' + response.data.error);
+            } else {
+                console.error('Unexpected response format:', response.data);
+                alert('Lỗi: Dữ liệu tỉnh/thành phố không đúng định dạng');
+            }
         } catch (error) {
             console.error('Error fetching cities:', error);
             alert('Lỗi khi tải danh sách tỉnh/thành phố');
         }
     }
 
-    async function fetchDistricts(provinceCode) {
-        const districtSelect = document.getElementById('district');
-        districtSelect.innerHTML = '<option value="">Chọn quận/huyện</option>';
-        districtSelect.disabled = true;
+async function fetchDistricts(provinceCode) {
+    const districtSelect = document.getElementById('district');
+    districtSelect.innerHTML = '<option value="">Chọn quận/huyện</option>';
+    districtSelect.disabled = true;
 
-        if (provinceCode) {
-            try {
-                const response = await axios.get(`/get-districts/${provinceCode}`);
+    if (provinceCode) {
+        try {
+            const response = await axios.get(`/get-districts/${provinceCode}`);
+            if (response.data && Array.isArray(response.data.districts)) {
                 response.data.districts.forEach(district => {
                     const option = document.createElement('option');
                     option.value = district.code;
@@ -93,19 +102,22 @@
                     districtSelect.appendChild(option);
                 });
                 districtSelect.disabled = false;
-            } catch (error) {
-                console.error('Error fetching districts:', error);
-                alert('Lỗi khi lấy danh sách quận/huyện');
+            } else {
+                console.error('Unexpected districts response format:', response.data);
+                alert('Lỗi: Dữ liệu quận/huyện không đúng định dạng');
             }
+        } catch (error) {
+            console.error('Error fetching districts:', error);
+            alert('Lỗi khi lấy danh sách quận/huyện');
         }
     }
+}
 
-    document.addEventListener('DOMContentLoaded', fetchCities);
+document.addEventListener('DOMContentLoaded', fetchCities);
 
-    document.getElementById('city').addEventListener('change', (e) => {
-        fetchDistricts(e.target.value);
-    });
-
+document.getElementById('city').addEventListener('change', (e) => {
+    fetchDistricts(e.target.value);
+});
     document.getElementById('sendOtp').addEventListener('click', async () => {
         const email = document.getElementById('email').value;
         if (!email) {

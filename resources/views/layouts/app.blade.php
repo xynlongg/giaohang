@@ -31,6 +31,7 @@
     <title>{{ config('app.name', 'Laravel') }}</title>
 
     <!-- Fonts -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <link rel="dns-prefetch" href="//fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=Nunito" rel="stylesheet">
     <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
@@ -45,10 +46,10 @@
     <script src="https://rawgit.com/schmich/instascan-builds/master/instascan.min.js"></script>
     <!-- Include jQuery first -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-
     <!-- Then include DataTables -->
     <script src="https://cdn.datatables.net/1.10.25/js/jquery.dataTables.min.js"></script>
-
+    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.10.24/css/jquery.dataTables.css">
+    <script type="text/javascript" charset="utf8" src="https://cdn.datatables.net/1.10.24/js/jquery.dataTables.js"></script>
 
     <!-- Scripts -->
     @vite(['resources/sass/app.scss', 'resources/js/app.js'])
@@ -82,6 +83,7 @@
     <script src="{{asset ('assets/vendor/php-email-form/validate.js') }}"></script>
     
     <!-- Template Main JS File -->
+
     <script src="{{asset ('assets/js/main.js') }}"></script>
     @yield('script')
     @include('layouts.footer')

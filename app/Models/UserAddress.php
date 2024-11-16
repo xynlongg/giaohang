@@ -9,8 +9,15 @@ class UserAddress extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['user_id', 'address','name','phone', 'coordinates'];
-
+    protected $fillable = [
+        'user_id',
+        'name',
+        'phone',
+        'address',
+        'district',
+        'province',
+        'coordinates',
+    ];
     protected $casts = [
         'coordinates' => 'array',
     ];

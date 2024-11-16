@@ -89,6 +89,7 @@ class User extends Authenticatable
     {
         return $this->hasOne(ShipperProfile::class);
     }
+   
     public function hasAnyRole($roles)
     {
         if (is_array($roles)) {
@@ -125,4 +126,63 @@ class User extends Authenticatable
     {
         return $this->hasMany(UserAddress::class);
     }
+    public function warehouses(): HasMany
+    {
+        return $this->hasMany(WarehouseUser::class);
+    }
+
+    public function handledOrders(): HasMany
+    {
+        return $this->hasMany(OrderHandler::class);
+    }
+
+    public function getCurrentWarehouse()
+    {
+        return $this->warehouses()
+            ->where('is_active', true)
+            ->whereNull('end_date')
+            ->first();
+    }
+    public function warehouseUsers()
+    {
+        return $this->hasMany(WarehouseUser::class);
+    }
+
+    public function currentWarehouse()
+    {
+        return $this->hasOne(WarehouseUser::class)
+            ->where('is_active', true)
+            ->whereNull('end_date');
+    }
+    public function syncRoles(array $roles)
+    {
+        return $this->roles()->sync(
+            Role::whereIn('name', $roles)->pluck('id')
+        );
+    }
+    /**
+     * Lấy các đơn hàng được phân phối cho nhân viên
+     */
+    public function distributions()
+    {
+        return $this->hasMany(OrderDistribution::class, 'staff_id');
+    }
+
+    /**
+     * Lấy các đơn hàng đang xử lý
+     */
+    public function activeDistributions()
+    {
+        return $this->hasMany(OrderDistribution::class, 'staff_id')
+            ->whereHas('order', function ($query) {
+                $query->whereIn('status', ['pending', 'processing']);
+            });
+    }
+    public function activeHandovers()
+    {
+        return $this->hasMany(DistributionHandover::class, 'distribution_staff_id')
+            ->where('status', 'in_progress');
+    }
+    
+   
 }

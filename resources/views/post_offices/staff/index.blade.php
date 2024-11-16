@@ -4,6 +4,8 @@
 <div class="container">
     <h1 class="mb-4">Quản lý nhân viên bưu cục</h1>
 
+    <div id="realtime-notifications"></div>
+
     <div class="card mb-4">
         <div class="card-body">
             <form action="{{ route('post_offices.staff.index') }}" method="GET">
@@ -27,10 +29,20 @@
                         {{ $user->name }} ({{ $user->email }})
                         <form action="{{ route('post_offices.staff.assign_role', $user) }}" method="POST" class="d-inline">
                             @csrf
-                            <select name="role" class="form-control form-control-sm d-inline-block w-auto" onchange="this.form.submit()">
+                            <select name="role" class="form-control form-control-sm" onchange="this.form.submit()">
                                 <option value="">Chọn quyền</option>
-                                <option value="post_office_staff" {{ $user->hasRole('post_office_staff') ? 'selected' : '' }}>Nhân viên bưu cục</option>
-                                <option value="post_office_manager" {{ $user->hasRole('post_office_manager') ? 'selected' : '' }}>Quản lý bưu cục</option>
+                                <option value="post_office_staff" {{ $user->hasRole('post_office_staff') ? 'selected' : '' }}>
+                                    Nhân viên bưu cục
+                                </option>
+                                <option value="post_office_manager" {{ $user->hasRole('post_office_manager') ? 'selected' : '' }}>
+                                    Quản lý bưu cục
+                                </option>
+                                <option value="general_distribution_staff" {{ $user->hasRole('general_distribution_staff') ? 'selected' : '' }}>
+                                    Nhân viên phân phối tổng
+                                </option>
+                                <option value="local_distribution_staff" {{ $user->hasRole('local_distribution_staff') ? 'selected' : '' }}>
+                                    Nhân viên phân phối địa phương
+                                </option>
                             </select>
                         </form>
                     </li>
@@ -44,7 +56,7 @@
         <div class="card-header">Nhân viên bưu cục hiện tại</div>
         <div class="card-body">
             <div class="table-responsive">
-                <table class="table table-hover">
+                <table class="table table-hover" id="staff-table">
                     <thead class="thead-light">
                         <tr>
                             <th>Tên</th>
@@ -56,7 +68,7 @@
                     </thead>
                     <tbody>
                         @foreach($filteredUsers as $user)
-                        <tr>
+                        <tr data-user-id="{{ $user->id }}">
                             <td>{{ $user->name }}</td>
                             <td>{{ $user->email }}</td>
                             <td>
@@ -65,6 +77,9 @@
                                     <select name="role" class="form-control form-control-sm" onchange="this.form.submit()">
                                         <option value="post_office_staff" {{ $user->hasRole('post_office_staff') ? 'selected' : '' }}>Nhân viên bưu cục</option>
                                         <option value="post_office_manager" {{ $user->hasRole('post_office_manager') ? 'selected' : '' }}>Quản lý bưu cục</option>
+                                        <option value="local_distribution_staff" {{ $user->hasRole('local_distribution_staff') ? 'selected' : '' }}>Nhân viên phân phối nội cục</option>
+                                         <option value="general_distribution_staff" {{ $user->hasRole('general_distribution_staff') ? 'selected' : '' }}>Nhân viên phân phối lên kho</option>
+                            
                                     </select>
                                 </form>
                             </td>
@@ -101,3 +116,35 @@
     </div>
 </div>
 @endsection
+
+@push('scripts')
+<script src="{{ asset('js/realtime-updates.js') }}" defer></script>
+<script src="{{ asset('js/app.js') }}"></script>
+<script>
+    Echo.channel('staff-updates')
+        .listen('StaffUpdated', (e) => {
+            console.log(e);
+            let notificationDiv = document.getElementById('realtime-notifications');
+            let notification = document.createElement('div');
+            notification.className = 'alert alert-info alert-dismissible fade show';
+            notification.innerHTML = `
+                ${e.message}
+                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            `;
+            notificationDiv.appendChild(notification);
+            
+            // Tự động ẩn thông báo sau 5 giây
+            setTimeout(() => {
+                notification.remove();
+            }, 5000);
+
+            // Cập nhật bảng nhân viên
+            let userRow = document.querySelector(`tr[data-user-id="${e.userId}"]`);
+            if (userRow) {
+                
+            }
+        });
+</script>
+@endpush
