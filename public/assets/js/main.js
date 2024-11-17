@@ -1,9 +1,13 @@
 /**
 * Template Name: NiceAdmin
+<<<<<<< HEAD
 * Template URL: https://bootstrapmade.com/nice-admin-bootstrap-admin-html-template/
 * Updated: Apr 20 2024 with Bootstrap v5.3.3
 * Author: BootstrapMade.com
 * License: https://bootstrapmade.com/license/
+=======
+* Updated: Apr 20 2024 with Bootstrap v5.3.3
+>>>>>>> 16f5b3a7b6f5024197dee957329cd37c1be8bd99
 */
 
 (function() {
@@ -118,6 +122,7 @@
   })
 
   /**
+<<<<<<< HEAD
    * Initiate quill editors
    */
   if (select('.quill-editor-default')) {
@@ -261,11 +266,83 @@
     content_style: 'body { font-family:Helvetica,Arial,sans-serif; font-size:16px }'
   });
 
+=======
+   * Quill Editor Initialization
+   */
+  if (window.Quill) {
+    // Default editor
+    if (select('.quill-editor-default')) {
+      new Quill('.quill-editor-default', {
+        theme: 'snow'
+      });
+    }
+
+    // Bubble theme editor
+    if (select('.quill-editor-bubble')) {
+      new Quill('.quill-editor-bubble', {
+        theme: 'bubble'
+      });
+    }
+
+    // Full featured editor
+    if (select('.quill-editor-full')) {
+      new Quill(".quill-editor-full", {
+        modules: {
+          toolbar: [
+            [{
+              font: []
+            }, {
+              size: []
+            }],
+            ["bold", "italic", "underline", "strike"],
+            [{
+                color: []
+              },
+              {
+                background: []
+              }
+            ],
+            [{
+                script: "super"
+              },
+              {
+                script: "sub"
+              }
+            ],
+            [{
+                list: "ordered"
+              },
+              {
+                list: "bullet"
+              },
+              {
+                indent: "-1"
+              },
+              {
+                indent: "+1"
+              }
+            ],
+            ["direction", {
+              align: []
+            }],
+            ["link", "image", "video"],
+            ["clean"]
+          ]
+        },
+        theme: "snow"
+      });
+    }
+  }
+
+>>>>>>> 16f5b3a7b6f5024197dee957329cd37c1be8bd99
   /**
    * Initiate Bootstrap validation check
    */
   var needsValidation = document.querySelectorAll('.needs-validation')
+<<<<<<< HEAD
 
+=======
+>>>>>>> 16f5b3a7b6f5024197dee957329cd37c1be8bd99
   Array.prototype.slice.call(needsValidation)
     .forEach(function(form) {
       form.addEventListener('submit', function(event) {
@@ -273,12 +350,16 @@
           event.preventDefault()
           event.stopPropagation()
         }
+<<<<<<< HEAD
 
+=======
+>>>>>>> 16f5b3a7b6f5024197dee957329cd37c1be8bd99
         form.classList.add('was-validated')
       }, false)
     })
 
   /**
+<<<<<<< HEAD
    * Initiate Datatables
    */
   const datatables = select('.datatable', true)
@@ -301,10 +382,37 @@
       ]
     });
   })
+=======
+   * Initiate DataTables
+   */
+  if (window.simpleDatatables) {
+    const datatables = select('.datatable', true)
+    datatables.forEach(datatable => {
+      new simpleDatatables.DataTable(datatable, {
+        perPageSelect: [5, 10, 15, ["All", -1]],
+        columns: [{
+            select: 2,
+            sortSequence: ["desc", "asc"]
+          },
+          {
+            select: 3,
+            sortSequence: ["desc"]
+          },
+          {
+            select: 4,
+            cellClass: "green",
+            headerClass: "red"
+          }
+        ]
+      });
+    })
+  }
+>>>>>>> 16f5b3a7b6f5024197dee957329cd37c1be8bd99
 
   /**
    * Autoresize echart charts
    */
+<<<<<<< HEAD
   const mainContainer = select('#main');
   if (mainContainer) {
     setTimeout(() => {
@@ -314,6 +422,19 @@
         })
       }).observe(mainContainer);
     }, 200);
+=======
+  if (window.echarts) {
+    const mainContainer = select('#main');
+    if (mainContainer) {
+      setTimeout(() => {
+        new ResizeObserver(function() {
+          select('.echart', true).forEach(getEchart => {
+            echarts.getInstanceByDom(getEchart).resize();
+          })
+        }).observe(mainContainer);
+      }, 200);
+    }
+>>>>>>> 16f5b3a7b6f5024197dee957329cd37c1be8bd99
   }
 
 })();
